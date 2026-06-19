@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface RoastRequest {
   /**
@@ -21,22 +18,3 @@ export interface RoastRequest {
   /** Additional context like duration or count */
   context: string;
 }
-
-export interface RoastResponse {
-  roast: string;
-}
-
-export interface DailyReportRequest {
-  screenTime: string;
-  topApp: string;
-  gymMissed: boolean;
-  waterGlasses: number;
-  readingMinutes: number;
-  shortsWatched: number;
-  productivityScore: number;
-}
-
-export interface DailyReportResponse {
-  verdict: string;
-}
-

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: roast
+    description: AI roast generation
 paths:
   /healthz:
     get:
@@ -24,6 +26,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /roast:
+    post:
+      operationId: generateRoast
+      tags: [roast]
+      summary: Generate an AI roast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoastRequest"
+      responses:
+        "200":
+          description: Generated roast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoastResponse"
+  /daily-report:
+    post:
+      operationId: generateDailyReport
+      tags: [roast]
+      summary: Generate a daily AI performance verdict
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyReportRequest"
+      responses:
+        "200":
+          description: AI verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReportResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +71,60 @@ components:
           type: string
       required:
         - status
-
+    RoastRequest:
+      type: object
+      properties:
+        roastLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: "1=Friendly, 2=Sarcastic, 3=Savage, 4=Unhinged"
+        activityType:
+          type: string
+          description: "e.g. Instagram, YouTube, Gaming, Missed Gym, etc."
+        context:
+          type: string
+          description: "Additional context like duration or count"
+      required:
+        - roastLevel
+        - activityType
+        - context
+    RoastResponse:
+      type: object
+      properties:
+        roast:
+          type: string
+      required:
+        - roast
+    DailyReportRequest:
+      type: object
+      properties:
+        screenTime:
+          type: string
+        topApp:
+          type: string
+        gymMissed:
+          type: boolean
+        waterGlasses:
+          type: integer
+        readingMinutes:
+          type: integer
+        shortsWatched:
+          type: integer
+        productivityScore:
+          type: integer
+      required:
+        - screenTime
+        - topApp
+        - gymMissed
+        - waterGlasses
+        - readingMinutes
+        - shortsWatched
+        - productivityScore
+    DailyReportResponse:
+      type: object
+      properties:
+        verdict:
+          type: string
+      required:
+        - verdict
