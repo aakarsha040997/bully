@@ -26,6 +26,12 @@ export interface DailyStats {
   lastUpdated: string;
 }
 
+export interface DailyRecord {
+  date: string;
+  score: number;
+  stats: DailyStats;
+}
+
 export interface AppSettings {
   roastLevel: RoastLevel;
   gymSchedule: GymSchedule;
@@ -40,6 +46,7 @@ interface AppContextValue {
   streaks: Streaks;
   stats: DailyStats;
   todaysRoast: string;
+  history: DailyRecord[];
   setTodaysRoast: (roast: string) => void;
   updateSettings: (s: Partial<AppSettings>) => void;
   incrementStreak: (key: keyof Streaks) => void;
@@ -75,6 +82,21 @@ const defaultStats: DailyStats = {
   lastUpdated: new Date().toDateString(),
 };
 
+function calcScore(s: DailyStats): number {
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      100 -
+        Math.floor(s.screenTimeMinutes / 5) +
+        s.waterGlasses * 3 +
+        Math.floor(s.readingMinutes / 2) +
+        (s.gymDone ? 20 : 0) -
+        Math.floor(s.shortsWatched / 5)
+    )
+  );
+}
+
 const AppContext = createContext<AppContextValue | null>(null);
 
 const STORAGE_KEYS = {
@@ -82,28 +104,48 @@ const STORAGE_KEYS = {
   streaks: "@bully_streaks",
   stats: "@bully_stats",
   roast: "@bully_todays_roast",
+  history: "@bully_history",
 };
+
+const MAX_HISTORY = 7;
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [streaks, setStreaks] = useState<Streaks>(defaultStreaks);
   const [stats, setStats] = useState<DailyStats>(defaultStats);
   const [todaysRoast, setTodaysRoastState] = useState<string>("Open the Roasts tab and get yours.");
+  const [history, setHistory] = useState<DailyRecord[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const [s, st, stat, roast] = await Promise.all([
+        const [s, st, stat, roast, hist] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.settings),
           AsyncStorage.getItem(STORAGE_KEYS.streaks),
           AsyncStorage.getItem(STORAGE_KEYS.stats),
           AsyncStorage.getItem(STORAGE_KEYS.roast),
+          AsyncStorage.getItem(STORAGE_KEYS.history),
         ]);
         if (s) setSettings({ ...defaultSettings, ...JSON.parse(s) });
         if (st) setStreaks({ ...defaultStreaks, ...JSON.parse(st) });
+        if (hist) setHistory(JSON.parse(hist));
+
         if (stat) {
           const parsed: DailyStats = JSON.parse(stat);
           if (parsed.lastUpdated !== new Date().toDateString()) {
+            // Archive yesterday before resetting
+            const yesterdayRecord: DailyRecord = {
+              date: parsed.lastUpdated,
+              score: calcScore(parsed),
+              stats: parsed,
+            };
+            const existingHist: DailyRecord[] = hist ? JSON.parse(hist) : [];
+            const alreadyArchived = existingHist.some((r) => r.date === parsed.lastUpdated);
+            if (!alreadyArchived) {
+              const newHist = [yesterdayRecord, ...existingHist].slice(0, MAX_HISTORY);
+              setHistory(newHist);
+              await AsyncStorage.setItem(STORAGE_KEYS.history, JSON.stringify(newHist));
+            }
             await AsyncStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(defaultStats));
           } else {
             setStats(parsed);
@@ -151,18 +193,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEYS.roast, roast).catch(() => {});
   }, []);
 
-  const productivityScore = Math.max(
-    0,
-    Math.min(
-      100,
-      100 -
-        Math.floor(stats.screenTimeMinutes / 5) +
-        stats.waterGlasses * 3 +
-        Math.floor(stats.readingMinutes / 2) +
-        (stats.gymDone ? 20 : 0) -
-        Math.floor(stats.shortsWatched / 5)
-    )
-  );
+  const productivityScore = calcScore(stats);
 
   return (
     <AppContext.Provider
@@ -171,6 +202,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         streaks,
         stats,
         todaysRoast,
+        history,
         setTodaysRoast,
         updateSettings,
         incrementStreak,
