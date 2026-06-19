@@ -17,7 +17,8 @@
       "supportsTablet": false
     },
     "android": {
-      "backgroundColor": "#000000"
+      "backgroundColor": "#000000",
+      "package": "com.bully.app"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -30,7 +31,8 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withUsageStats"
     ],
     "experiments": {
       "typedRoutes": true,

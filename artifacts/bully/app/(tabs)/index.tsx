@@ -16,6 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { fireScreenTimeAlert } from "@/services/notifications";
+import {
+  hasUsagePermission,
+  getTotalScreenMinutes,
+  getTopApp,
+  type AppUsage,
+} from "@/services/usageStats";
 
 // ─── Score Ring ────────────────────────────────────────────────────────────────
 
@@ -321,6 +327,8 @@ export default function DashboardScreen() {
     useApp();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [screenTimeWarningFired, setScreenTimeWarningFired] = useState(false);
+  const [autoTracking, setAutoTracking] = useState(false);
+  const [topApp, setTopApp] = useState<AppUsage | null>(null);
 
   const { mutate: getVerdict, isPending } = useGenerateDailyReport({
     mutation: {
@@ -346,6 +354,22 @@ export default function DashboardScreen() {
         }),
       ])
     ).start();
+  }, []);
+
+  // Auto-fill stats from Android UsageStatsManager if permission granted
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    (async () => {
+      const granted = await hasUsagePermission();
+      if (!granted) return;
+      setAutoTracking(true);
+      const [totalMins, top] = await Promise.all([
+        getTotalScreenMinutes(),
+        getTopApp(),
+      ]);
+      updateStats({ screenTimeMinutes: totalMins });
+      setTopApp(top);
+    })();
   }, []);
 
   // Fire screen-time notification when limit is exceeded
@@ -381,7 +405,7 @@ export default function DashboardScreen() {
     getVerdict({
       data: {
         screenTime: screenTimeStr,
-        topApp: "Instagram",
+        topApp: topApp?.appName ?? "Instagram",
         gymMissed: !stats.gymDone,
         waterGlasses: stats.waterGlasses,
         readingMinutes: stats.readingMinutes,

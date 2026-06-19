@@ -66,10 +66,10 @@ export function getScreenTimeRoast(level: RoastLevel): string {
 export async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === "web") return false;
 
-  const { status: existing } = await Notifications.getPermissionsAsync();
+  const { status: existing } = await Notifications.getPermissionsAsync() as any;
   if (existing === "granted") return true;
 
-  const { status } = await Notifications.requestPermissionsAsync();
+  const { status } = await Notifications.requestPermissionsAsync() as any;
   return status === "granted";
 }
 
@@ -77,8 +77,8 @@ export async function getNotificationPermissionStatus(): Promise<
   "granted" | "denied" | "undetermined"
 > {
   if (Platform.OS === "web") return "denied";
-  const { status } = await Notifications.getPermissionsAsync();
-  return status;
+  const { status } = await Notifications.getPermissionsAsync() as any;
+  return (status as "granted" | "denied" | "undetermined") ?? "denied";
 }
 
 const DAILY_ROAST_ID_KEY = "bully-daily-roast";

@@ -24,6 +24,12 @@ import {
   scheduleDailyRoast,
   fireScreenTimeAlert,
 } from "@/services/notifications";
+import {
+  hasUsagePermission,
+  requestUsagePermission,
+  getAppUsageStats,
+  type AppUsage,
+} from "@/services/usageStats";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ROAST_LEVEL_LABELS: Record<RoastLevel, string> = {
@@ -91,6 +97,8 @@ export default function SettingsScreen() {
     "granted" | "denied" | "undetermined" | "loading"
   >("loading");
   const [scheduledCount, setScheduledCount] = useState(0);
+  const [usageGranted, setUsageGranted] = useState(false);
+  const [topApps, setTopApps] = useState<AppUsage[]>([]);
   const topInset = Platform.OS === "web" ? 67 : insets.top;
 
   useEffect(() => {
@@ -101,6 +109,28 @@ export default function SettingsScreen() {
       setPermStatus("denied");
     }
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    hasUsagePermission().then((granted) => {
+      setUsageGranted(granted);
+      if (granted) getAppUsageStats().then(setTopApps);
+    });
+  }, []);
+
+  const handleGrantUsageAccess = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await requestUsagePermission();
+    // Re-check after returning from settings (user may have granted)
+    setTimeout(async () => {
+      const granted = await hasUsagePermission();
+      setUsageGranted(granted);
+      if (granted) {
+        const apps = await getAppUsageStats();
+        setTopApps(apps);
+      }
+    }, 1000);
+  };
 
   const toggleDay = (day: string) => {
     Haptics.selectionAsync();
@@ -582,6 +612,65 @@ export default function SettingsScreen() {
         </SettingRow>
       </View>
 
+      {/* ── Android Tracking ── */}
+      {Platform.OS === "android" && (
+        <>
+          <SectionHeader title="ANDROID TRACKING" />
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.card, borderColor: usageGranted ? "#00E676" + "40" : colors.border, gap: 0 },
+            ]}
+          >
+            <SettingRow icon="chart-bar" label="Usage Access">
+              {usageGranted ? (
+                <View style={styles.grantedBadge}>
+                  <MaterialCommunityIcons name="check-circle" size={14} color="#00E676" />
+                  <Text style={[styles.grantedText, { color: "#00E676", fontFamily: "Inter_500Medium" }]}>Active</Text>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={handleGrantUsageAccess}
+                  style={[styles.grantBtn, { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                >
+                  <Text style={[styles.grantBtnText, { fontFamily: "Inter_600SemiBold" }]}>Grant</Text>
+                </Pressable>
+              )}
+            </SettingRow>
+
+            {!usageGranted && (
+              <View style={[styles.notifHint, { borderTopColor: colors.border }]}>
+                <MaterialCommunityIcons name="information-outline" size={14} color={colors.mutedForeground} />
+                <Text style={[styles.notifHintText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                  Grant Usage Access so Bully can read your real screen time and top apps — no more manual logging.
+                </Text>
+              </View>
+            )}
+
+            {usageGranted && topApps.length > 0 && (
+              <View style={[styles.appsSection, { borderTopColor: colors.border }]}>
+                <Text style={[styles.appsSectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+                  LAST 24H USAGE
+                </Text>
+                {topApps.slice(0, 5).map((app, i) => (
+                  <View key={app.packageName} style={styles.appRow}>
+                    <Text style={[styles.appRank, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
+                      {i + 1}.
+                    </Text>
+                    <Text style={[styles.appName, { color: colors.foreground, fontFamily: "Inter_500Medium" }]} numberOfLines={1}>
+                      {app.appName}
+                    </Text>
+                    <Text style={[styles.appTime, { color: i === 0 ? colors.primary : colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+                      {app.totalMinutes}m
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </>
+      )}
+
       {/* ── About ── */}
       <SectionHeader title="ABOUT" />
       <View
@@ -617,7 +706,7 @@ export default function SettingsScreen() {
               },
             ]}
           >
-            GPT-4o-mini
+            Groq Llama 3.1
           </Text>
         </SettingRow>
         <SettingRow icon="shield-check" label="No hate speech, ever">
@@ -777,4 +866,23 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   testBtnText: { fontSize: 13 },
+  grantedBadge: { flexDirection: "row", alignItems: "center", gap: 4 },
+  grantedText: { fontSize: 12 },
+  grantBtn: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  grantBtnText: { color: "#fff", fontSize: 13 },
+  appsSection: {
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  appsSectionLabel: { fontSize: 10, letterSpacing: 2, marginBottom: 4 },
+  appRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  appRank: { fontSize: 12, width: 16 },
+  appName: { flex: 1, fontSize: 13 },
+  appTime: { fontSize: 13 },
 });
