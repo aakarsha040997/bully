@@ -101,9 +101,11 @@ export default function RoastsScreen() {
     ]).start();
     const context = buildContext(selectedActivities, selectedDuration);
     getRoast({
-      roastLevel: selectedLevel,
-      activityType: selectedActivities.join(", "),
-      context,
+      data: {
+        roastLevel: selectedLevel,
+        activityType: selectedActivities.join(", "),
+        context,
+      },
     });
   };
 

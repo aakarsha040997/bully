@@ -379,13 +379,15 @@ export default function DashboardScreen() {
   const handleGetVerdict = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     getVerdict({
-      screenTime: screenTimeStr,
-      topApp: "Instagram",
-      gymMissed: !stats.gymDone,
-      waterGlasses: stats.waterGlasses,
-      readingMinutes: stats.readingMinutes,
-      shortsWatched: stats.shortsWatched,
-      productivityScore,
+      data: {
+        screenTime: screenTimeStr,
+        topApp: "Instagram",
+        gymMissed: !stats.gymDone,
+        waterGlasses: stats.waterGlasses,
+        readingMinutes: stats.readingMinutes,
+        shortsWatched: stats.shortsWatched,
+        productivityScore,
+      },
     });
   };
 
