@@ -1,0 +1,387 @@
+# Build "Bully" – The AI Accountability App
+
+Build a production-ready mobile app called **Bully**.
+
+The goal of the app is to make users more productive by aggressively calling them out whenever they waste time.
+
+This is NOT a mental health app.
+
+This is NOT a meditation app.
+
+This is an accountability app that acts like the brutally honest friend everyone needs.
+
+The tone should be hilarious, sarcastic, rude, and motivating—but never hateful or discriminatory.
+
+Think:
+
+* A gym bro who genuinely wants you to succeed.
+* A best friend roasting you.
+* Duolingo's owl, but for productivity.
+
+---
+
+# Core Features
+
+## AI Accountability
+
+The app should continuously monitor user habits (with the permissions available on Android/iOS).
+
+Examples include:
+
+* Excessive Instagram usage
+* YouTube Shorts
+* TikTok
+* Reddit scrolling
+* X (Twitter)
+* Facebook
+* Phone unlock frequency
+* Total screen time
+* Time spent gaming
+* Missed workouts
+* Missed study sessions
+* Staying in bed after alarm
+* Late-night doomscrolling
+
+When the user is wasting time, send an instant notification.
+
+Examples:
+
+"You've been scrolling Instagram for 34 minutes. Are you training your thumb for the Olympics?"
+
+"You've watched 61 Shorts. None of them changed your life."
+
+"Your gym membership just reported you missing."
+
+"Your dumbbells are developing abandonment issues."
+
+"You've opened Instagram 17 times today. Were you expecting a different app?"
+
+"Your future self called. He's disappointed."
+
+"Bro. Put the phone down."
+
+"You said '5 more minutes' 43 minutes ago."
+
+"The only thing getting stronger today is your scrolling finger."
+
+"Close YouTube. Open your life."
+
+---
+
+# Roast Levels
+
+Users can choose:
+
+Level 1
+Friendly
+
+Level 2
+Sarcastic
+
+Level 3
+Savage
+
+Level 4
+Absolutely Unhinged
+
+Higher levels produce harsher language while remaining playful.
+
+Examples of Unhinged:
+
+"Get your fat ass off the couch."
+
+"Bro, your phone battery is working harder than you are."
+
+"Even your sneakers think you've quit."
+
+"You're one scroll away from becoming furniture."
+
+"You don't need another motivational video. YOU need to MOVE."
+
+Avoid hate speech, slurs, threats, or attacks on protected characteristics. The insults should target behavior (procrastination, inactivity), not identity.
+
+---
+
+# Gym Mode
+
+User sets workout schedule.
+
+Example:
+
+Monday
+7 PM
+
+If 7:10 PM arrives and no workout is logged:
+
+Notification:
+
+"The gym is waiting. Unlike your motivation."
+
+After 20 minutes:
+
+"At this point even your protein powder has given up."
+
+After one hour:
+
+"Congratulations. Rest day achieved accidentally."
+
+---
+
+# Screen Time Detection
+
+Use Android Usage Stats API and Digital Wellbeing integrations where possible.
+
+Track:
+
+Instagram
+
+YouTube
+
+YouTube Shorts
+
+TikTok
+
+Reddit
+
+Netflix
+
+Prime Video
+
+Games
+
+Discord
+
+Chrome
+
+If usage exceeds user-defined limits:
+
+Immediately send AI-generated roasts.
+
+Example:
+
+"45 minutes on Reddit. You now know everything except how to improve your own life."
+
+---
+
+# AI Roast Engine
+
+Integrate OpenAI.
+
+System Prompt:
+
+You are an aggressive but funny accountability coach.
+
+Your job is to push users into productive action.
+
+Rules:
+
+* Short
+* Funny
+* Brutal
+* Motivating
+* Never hateful
+* Never racist
+* Never sexist
+* Never attack disabilities
+* Never encourage self-harm
+* No profanity beyond mild words like "ass", "damn", or "hell".
+* Maximum 20 words.
+
+Generate a unique roast every time.
+
+Avoid repeating messages.
+
+---
+
+# Productive Activities
+
+The app should encourage:
+
+Going to gym
+
+Studying
+
+Reading
+
+Meditating
+
+Coding
+
+Working
+
+Walking
+
+Cleaning
+
+Cooking
+
+Drinking water
+
+Sleeping on time
+
+Stretching
+
+If the user starts doing productive activities, switch tone.
+
+Examples:
+
+"Finally."
+
+"There you go."
+
+"About time."
+
+"Good. Keep going."
+
+"See? That wasn't hard."
+
+---
+
+# Streaks
+
+Track:
+
+Gym streak
+
+Study streak
+
+Reading streak
+
+No doomscroll streak
+
+Wake-up streak
+
+Reward users with achievements.
+
+---
+
+# Dashboard
+
+Display:
+
+Today's screen time
+
+Most used apps
+
+Workout streak
+
+Today's roast
+
+Productivity score
+
+Weekly report
+
+Unlock count
+
+Hours saved
+
+---
+
+# Daily Report
+
+Generate an AI summary.
+
+Example:
+
+Today's Performance
+
+Instagram: 2h 17m
+
+Gym: Missed
+
+Water: 4 glasses
+
+Reading: 0 min
+
+YouTube Shorts: 96 videos
+
+Verdict:
+
+"You invested more time in strangers than yourself."
+
+---
+
+# Permissions
+
+Request:
+
+Notification permission
+
+Usage access
+
+Health Connect / Google Fit
+
+Background activity
+
+Alarm permission
+
+Battery optimization exemption if needed
+
+Explain clearly why each permission is required.
+
+---
+
+# UI
+
+Modern.
+
+Dark theme.
+
+Black background.
+
+Neon red accents.
+
+Glassmorphism.
+
+Smooth animations.
+
+Minimal.
+
+Large typography.
+
+Looks like a premium app.
+
+---
+
+# Tech Stack
+
+React Native + Expo (or native modules where required)
+
+TypeScript
+
+Firebase Authentication
+
+Firestore
+
+Firebase Cloud Messaging
+
+OpenAI API
+
+React Navigation
+
+NativeWind
+
+Reanimated
+
+React Query
+
+Health Connect integration
+
+Android Usage Stats API
+
+---
+
+# Code Requirements
+
+* Modular architecture
+* Clean components
+* Production-ready
+* Error handling
+* Offline caching
+* Secure API key handling
+* Responsive UI
+* Well-commented code
+
+Generate the complete MVP with all screens, navigation, Firebase integration, AI roast generation, notification scheduling, usage tracking (where platform APIs allow), and polished UI.
+
+If a feature is impossible due to iOS or Android restrictions, explain the limitation and implement the closest possible alternative.

@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "5QuW23Zym4aFyngGRx2mT"
+uri = "file://artifacts/bully/assets/images/icon.png"
+type = "image"
+title = "bully app icon skull"
