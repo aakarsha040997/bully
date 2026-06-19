@@ -1,10 +1,10 @@
 import { Router, type IRouter } from "express";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GenerateRoastBody, GenerateDailyReportBody, GenerateRoastResponse, GenerateDailyReportResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
 const systemPrompts: Record<number, string> = {
   1: "You are a supportive but honest accountability coach. When someone wastes time, give them a warm, funny nudge to get back on track. Keep it short and positive. Maximum 20 words. No profanity.",
@@ -20,17 +20,14 @@ router.post("/roast", async (req, res) => {
   const systemPrompt = systemPrompts[roastLevel] ?? systemPrompts[2];
   const userMessage = `User has been: ${activityType}. Context: ${context}. Generate a unique roast.`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_tokens: 80,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userMessage },
-    ],
-    temperature: 1.1,
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash",
+    systemInstruction: systemPrompt,
+    generationConfig: { maxOutputTokens: 80, temperature: 1.1 },
   });
 
-  const roast = completion.choices[0]?.message?.content?.trim() ?? "Get off your phone.";
+  const result = await model.generateContent(userMessage);
+  const roast = result.response.text().trim() || "Get off your phone.";
   const data = GenerateRoastResponse.parse({ roast });
   res.json(data);
 });
@@ -41,20 +38,14 @@ router.post("/daily-report", async (req, res) => {
 
   const statsText = `Screen time: ${screenTime}, Most used app: ${topApp}, Gym: ${gymMissed ? "MISSED" : "done"}, Water: ${waterGlasses} glasses, Reading: ${readingMinutes} min, Shorts watched: ${shortsWatched}, Productivity score: ${productivityScore}/100.`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_tokens: 60,
-    messages: [
-      {
-        role: "system",
-        content: "You are a brutal but funny accountability coach giving a one-line daily verdict. Be savagely honest but never hateful. Maximum 15 words.",
-      },
-      { role: "user", content: `Today's stats: ${statsText} Give a verdict.` },
-    ],
-    temperature: 1.1,
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash",
+    systemInstruction: "You are a brutal but funny accountability coach giving a one-line daily verdict. Be savagely honest but never hateful. Maximum 15 words.",
+    generationConfig: { maxOutputTokens: 60, temperature: 1.1 },
   });
 
-  const verdict = completion.choices[0]?.message?.content?.trim() ?? "Could be worse. Not by much though.";
+  const result = await model.generateContent(`Today's stats: ${statsText} Give a verdict.`);
+  const verdict = result.response.text().trim() || "Could be worse. Not by much though.";
   const data = GenerateDailyReportResponse.parse({ verdict });
   res.json(data);
 });
