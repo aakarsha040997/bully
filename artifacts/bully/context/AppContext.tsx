@@ -31,6 +31,8 @@ export interface AppSettings {
   gymSchedule: GymSchedule;
   dailyScreenTimeLimit: number;
   notificationsEnabled: boolean;
+  notificationHour: number;
+  notificationMinute: number;
 }
 
 interface AppContextValue {
@@ -50,7 +52,9 @@ const defaultSettings: AppSettings = {
   roastLevel: 2,
   gymSchedule: { days: ["Mon", "Wed", "Fri"], time: "07:00" },
   dailyScreenTimeLimit: 120,
-  notificationsEnabled: true,
+  notificationsEnabled: false,
+  notificationHour: 8,
+  notificationMinute: 0,
 };
 
 const defaultStreaks: Streaks = {
