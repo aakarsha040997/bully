@@ -38,28 +38,30 @@ const ACTIVITIES = [
   { key: "Procrastinating", icon: "clock-alert" },
 ];
 
-const CONTEXTS: Record<string, string[]> = {
-  Instagram: ["15 minutes", "30 minutes", "1 hour", "2+ hours", "Lost count"],
-  "YouTube Shorts": ["10 videos", "30 videos", "60+ videos", "Still going"],
-  TikTok: ["15 minutes", "30 minutes", "1 hour", "2+ hours"],
-  Reddit: ["15 minutes", "30 minutes", "1 hour", "Going down a rabbit hole"],
-  "Twitter/X": ["15 minutes", "30 minutes", "1 hour", "Pure rage-scrolling"],
-  Netflix: ["1 episode", "3 episodes", "Full season", "Lost track"],
-  Gaming: ["30 minutes", "1 hour", "3 hours", "All day"],
-  "Missed Gym": ["Today", "2 days in a row", "A whole week", "This month"],
-  Doomscrolling: ["15 minutes", "30 minutes", "1 hour", "Past midnight"],
-  Discord: ["30 minutes", "1 hour", "All afternoon", "While working"],
-  "Staying in Bed": ["30 mins past alarm", "1 hour late", "2+ hours late"],
-  Procrastinating: ["30 minutes", "1 hour", "All morning", "All day"],
-};
+const DURATIONS = [
+  "15 minutes",
+  "30 minutes",
+  "1 hour",
+  "2+ hours",
+  "All day",
+  "Lost count",
+];
+
+function buildContext(activities: string[], duration: string): string {
+  if (activities.length === 0) return `doing nothing for ${duration}`;
+  if (activities.length === 1) return `${activities[0]} for ${duration}`;
+  const last = activities[activities.length - 1];
+  const rest = activities.slice(0, -1).join(", ");
+  return `${rest} and ${last} for ${duration} each`;
+}
 
 export default function RoastsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { settings, setTodaysRoast } = useApp();
   const [selectedLevel, setSelectedLevel] = useState(settings.roastLevel);
-  const [selectedActivity, setSelectedActivity] = useState<string>("Instagram");
-  const [selectedContext, setSelectedContext] = useState<string>("30 minutes");
+  const [selectedActivities, setSelectedActivities] = useState<string[]>(["Instagram"]);
+  const [selectedDuration, setSelectedDuration] = useState("30 minutes");
   const [currentRoast, setCurrentRoast] = useState<string | null>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -78,7 +80,18 @@ export default function RoastsScreen() {
     },
   });
 
+  const toggleActivity = (key: string) => {
+    Haptics.selectionAsync();
+    setSelectedActivities((prev) =>
+      prev.includes(key) ? prev.filter((a) => a !== key) : [...prev, key]
+    );
+  };
+
   const handleRoastMe = () => {
+    if (selectedActivities.length === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
@@ -86,15 +99,16 @@ export default function RoastsScreen() {
       Animated.timing(shakeAnim, { toValue: 6, duration: 60, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
     ]).start();
+    const context = buildContext(selectedActivities, selectedDuration);
     getRoast({
       roastLevel: selectedLevel,
-      activityType: selectedActivity,
-      context: `${selectedActivity} for ${selectedContext}`,
+      activityType: selectedActivities.join(", "),
+      context,
     });
   };
 
-  const contexts = CONTEXTS[selectedActivity] ?? ["Just now", "30 minutes", "1 hour"];
   const topInset = Platform.OS === "web" ? 67 : insets.top;
+  const selectedCount = selectedActivities.length;
 
   return (
     <ScrollView
@@ -109,9 +123,10 @@ export default function RoastsScreen() {
         GET ROASTED
       </Text>
       <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-        Pick your crime. Face the consequences.
+        Pick your crimes. Face the consequences.
       </Text>
 
+      {/* ── Roast Level ── */}
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
         ROAST LEVEL
       </Text>
@@ -147,25 +162,54 @@ export default function RoastsScreen() {
         })}
       </View>
 
-      <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-        YOUR CRIME
-      </Text>
+      {/* ── Your Crimes ── */}
+      <View style={styles.crimesHeader}>
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+          YOUR CRIMES
+        </Text>
+        <View style={styles.crimesBadgeRow}>
+          {selectedCount > 0 && (
+            <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.countBadgeText, { fontFamily: "Inter_700Bold" }]}>
+                {selectedCount}
+              </Text>
+            </View>
+          )}
+          <Text style={[styles.crimesSub, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+            {selectedCount === 0
+              ? "tap to select"
+              : selectedCount === 1
+              ? "selected"
+              : "selected"}
+          </Text>
+          {selectedCount > 0 && (
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                setSelectedActivities([]);
+              }}
+            >
+              <Text style={[styles.clearText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>
+                clear
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+
       <View style={styles.activitiesGrid}>
         {ACTIVITIES.map(({ key, icon }) => {
-          const active = selectedActivity === key;
+          const active = selectedActivities.includes(key);
           return (
             <Pressable
               key={key}
-              onPress={() => {
-                setSelectedActivity(key);
-                setSelectedContext(CONTEXTS[key]?.[1] ?? "30 minutes");
-                Haptics.selectionAsync();
-              }}
-              style={[
+              onPress={() => toggleActivity(key)}
+              style={({ pressed }) => [
                 styles.activityChip,
                 {
                   backgroundColor: active ? colors.primary + "20" : colors.card,
                   borderColor: active ? colors.primary : colors.border,
+                  opacity: pressed ? 0.75 : 1,
                 },
               ]}
             >
@@ -177,22 +221,26 @@ export default function RoastsScreen() {
               <Text style={[styles.activityLabel, { color: active ? colors.primary : colors.foreground, fontFamily: "Inter_500Medium" }]}>
                 {key}
               </Text>
+              {active && (
+                <MaterialCommunityIcons name="check-circle" size={14} color={colors.primary} />
+              )}
             </Pressable>
           );
         })}
       </View>
 
+      {/* ── Duration ── */}
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
         FOR HOW LONG
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contextScroll}>
-        {contexts.map((ctx) => {
-          const active = selectedContext === ctx;
+        {DURATIONS.map((dur) => {
+          const active = selectedDuration === dur;
           return (
             <Pressable
-              key={ctx}
+              key={dur}
               onPress={() => {
-                setSelectedContext(ctx);
+                setSelectedDuration(dur);
                 Haptics.selectionAsync();
               }}
               style={[
@@ -204,32 +252,55 @@ export default function RoastsScreen() {
               ]}
             >
               <Text style={[styles.contextLabel, { color: active ? "#fff" : colors.foreground, fontFamily: "Inter_500Medium" }]}>
-                {ctx}
+                {dur}
               </Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
+      {/* ── Roast preview ── */}
+      {selectedCount > 1 && (
+        <View style={[styles.previewPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <MaterialCommunityIcons name="eye-outline" size={14} color={colors.mutedForeground} />
+          <Text style={[styles.previewText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]} numberOfLines={2}>
+            "{buildContext(selectedActivities, selectedDuration)}"
+          </Text>
+        </View>
+      )}
+
+      {/* ── CTA ── */}
       <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
         <Pressable
           onPress={handleRoastMe}
-          disabled={isPending}
+          disabled={isPending || selectedCount === 0}
           style={({ pressed }) => [
             styles.roastBtn,
             {
-              backgroundColor: isPending ? colors.primary + "80" : colors.primary,
+              backgroundColor:
+                selectedCount === 0
+                  ? colors.secondary
+                  : isPending
+                  ? colors.primary + "80"
+                  : colors.primary,
               opacity: pressed ? 0.9 : 1,
             },
           ]}
         >
           <MaterialCommunityIcons name="lightning-bolt" size={22} color="#fff" />
           <Text style={[styles.roastBtnText, { fontFamily: "Inter_700Bold" }]}>
-            {isPending ? "GENERATING..." : "ROAST ME"}
+            {isPending
+              ? "GENERATING..."
+              : selectedCount === 0
+              ? "SELECT A CRIME"
+              : selectedCount === 1
+              ? "ROAST ME"
+              : `ROAST ALL ${selectedCount}`}
           </Text>
         </Pressable>
       </Animated.View>
 
+      {/* ── Result ── */}
       {currentRoast && (
         <Animated.View
           style={[
@@ -269,6 +340,23 @@ const styles = StyleSheet.create({
   levelNum: { fontSize: 20 },
   levelLabel: { fontSize: 11 },
   levelDesc: { fontSize: 9, textAlign: "center" },
+  crimesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  crimesBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  countBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countBadgeText: { color: "#fff", fontSize: 11 },
+  crimesSub: { fontSize: 11 },
+  clearText: { fontSize: 11 },
   activitiesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 },
   activityChip: {
     flexDirection: "row",
@@ -280,7 +368,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   activityLabel: { fontSize: 13 },
-  contextScroll: { marginBottom: 24 },
+  contextScroll: { marginBottom: 16 },
   contextChip: {
     borderRadius: 20,
     borderWidth: 1,
@@ -289,6 +377,16 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   contextLabel: { fontSize: 13 },
+  previewPill: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 16,
+  },
+  previewText: { fontSize: 12, flex: 1, lineHeight: 17, fontStyle: "italic" },
   roastBtn: {
     flexDirection: "row",
     alignItems: "center",
