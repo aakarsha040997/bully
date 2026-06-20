@@ -856,7 +856,6 @@ export default function DashboardScreen() {
           <View style={styles.headerLeft}>
             <Text
               numberOfLines={1}
-              adjustsFontSizeToFit
               style={[
                 styles.appName,
                 { color: colors.foreground, fontFamily: "Inter_700Bold" },
@@ -1096,7 +1095,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerLeft: { flex: 1 },
-  appName: { fontSize: 42, letterSpacing: 8 },
+  appName: { fontSize: 40, letterSpacing: 5 },
   tagline: { fontSize: 13, marginTop: 2, letterSpacing: 1 },
 
   personalityBadge: {
