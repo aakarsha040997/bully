@@ -16,6 +16,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { type RoastLevel, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { PERSONALITY_LABELS } from "@/services/roastEngine";
+import type { Personality } from "@/services/roastEngine/types";
+import { setPersonality as persistPersonality } from "@/services/storage";
 import {
   cancelDailyCheckIn,
   getAllScheduledNotifications,
@@ -38,6 +41,28 @@ const ROAST_LEVEL_LABELS: Record<RoastLevel, string> = {
   3: "Savage",
   4: "Unhinged",
 };
+
+const PERSONALITY_DESCRIPTIONS: Record<Personality, string> = {
+  GENTLE: "Encouraging accountability.",
+  FRIEND: "Like your best friend calling you out.",
+  SARCASTIC: "Dry humor.",
+  SAVAGE: "No mercy.",
+  GYM_BRO: "Discipline first.",
+  CORPORATE_BOSS: "Performance reviews for your life.",
+  INDIAN_MOM: "Emotional damage.",
+  ANIME_VILLAIN: "Dramatic and overpowered.",
+};
+
+const ALL_PERSONALITIES: Personality[] = [
+  "GENTLE",
+  "FRIEND",
+  "SARCASTIC",
+  "SAVAGE",
+  "GYM_BRO",
+  "CORPORATE_BOSS",
+  "INDIAN_MOM",
+  "ANIME_VILLAIN",
+];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 15, 30, 45];
@@ -313,6 +338,65 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+      </View>
+
+      {/* ── Personality ── */}
+      <SectionHeader title="ROAST PERSONALITY" />
+      <View style={styles.personalityGrid}>
+        {ALL_PERSONALITIES.map((p) => {
+          const active = settings.personality === p;
+          return (
+            <Pressable
+              key={p}
+              onPress={() => {
+                Haptics.selectionAsync();
+                updateSettings({ personality: p });
+                persistPersonality(p);
+              }}
+              style={[
+                styles.personalityCard,
+                {
+                  backgroundColor: active
+                    ? colors.primary + "18"
+                    : colors.card,
+                  borderColor: active ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              {active && (
+                <View style={styles.personalityCheck}>
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={14}
+                    color={colors.primary}
+                  />
+                </View>
+              )}
+              <Text
+                style={[
+                  styles.personalityName,
+                  {
+                    color: active ? colors.primary : colors.foreground,
+                    fontFamily: "Inter_700Bold",
+                  },
+                ]}
+              >
+                {PERSONALITY_LABELS[p]}
+              </Text>
+              <Text
+                style={[
+                  styles.personalityDesc,
+                  {
+                    color: colors.mutedForeground,
+                    fontFamily: "Inter_400Regular",
+                  },
+                ]}
+              >
+                {PERSONALITY_DESCRIPTIONS[p]}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* ── Notifications ── */}
@@ -891,4 +975,26 @@ const styles = StyleSheet.create({
   appRank: { fontSize: 12, width: 16 },
   appName: { flex: 1, fontSize: 13 },
   appTime: { fontSize: 13 },
+
+  personalityGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  personalityCard: {
+    width: "47%",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    gap: 4,
+    position: "relative",
+  },
+  personalityCheck: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  personalityName: { fontSize: 13, paddingRight: 20 },
+  personalityDesc: { fontSize: 11, lineHeight: 15 },
 });

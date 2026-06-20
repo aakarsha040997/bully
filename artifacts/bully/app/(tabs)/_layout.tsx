@@ -24,6 +24,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "flame", selected: "flame.fill" }} />
         <Label>Streaks</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="report">
+        <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
+        <Label>Report</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <Icon sf={{ default: "gear", selected: "gear" }} />
         <Label>Settings</Label>
@@ -101,6 +105,18 @@ function ClassicTabLayout() {
               <SymbolView name="flame.fill" tintColor={color} size={22} />
             ) : (
               <MaterialCommunityIcons name="fire" size={24} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="report"
+        options={{
+          title: "Report",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="chart.bar.fill" tintColor={color} size={22} />
+            ) : (
+              <MaterialCommunityIcons name="chart-bar" size={24} color={color} />
             ),
         }}
       />

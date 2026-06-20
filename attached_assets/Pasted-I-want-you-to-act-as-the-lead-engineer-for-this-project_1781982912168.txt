@@ -1,0 +1,327 @@
+I want you to act as the lead engineer for this project.
+
+Produce a COMPLETE technical audit of the current application. Do NOT summarize. Be detailed.
+
+Structure your response exactly like this.
+
+# 1. Project Overview
+
+* What is this app?
+* What does it currently do?
+* What is implemented?
+* What is partially implemented?
+* What is still missing?
+
+---
+
+# 2. File Structure
+
+Show the complete important project structure, including:
+
+app/
+components/
+services/
+modules/
+plugins/
+hooks/
+context/
+server/
+
+For every file, give a one-line explanation of its purpose.
+
+---
+
+# 3. Features
+
+List every feature currently implemented.
+
+For each feature explain:
+
+* How it works
+* Which files are involved
+* Whether it is production-ready
+* Any limitations
+
+---
+
+# 4. Android Features
+
+Explain every Android-specific capability.
+
+Include:
+
+* UsageStats
+* Permissions
+* Notifications
+* Background work
+* Native modules
+* Manifest permissions
+* Config plugins
+
+Explain exactly how each one works.
+
+---
+
+# 5. Native Module
+
+Explain the native Android implementation.
+
+Include:
+
+* Kotlin files
+* Module registration
+* Expo module integration
+* NativeMethods exposed
+* Current capabilities
+* Current limitations
+
+---
+
+# 6. Monitoring
+
+Explain how monitoring currently works.
+
+Specifically answer:
+
+* How does the app detect app usage?
+* Does it poll?
+* Does it monitor continuously?
+* Does it only check on screen load?
+* Is WorkManager used?
+* Is a foreground service used?
+* What is missing?
+
+---
+
+# 7. Roast Engine
+
+Explain:
+
+* How roasts are generated
+* Where templates live
+* Personalities
+* Rule engine
+* Cooldowns
+* Randomization
+* AI integration
+* Future extensibility
+
+---
+
+# 8. Notifications
+
+Explain:
+
+* Immediate notifications
+* Scheduled notifications
+* Daily notifications
+* Trigger logic
+* Notification permissions
+* Android notification channels
+
+---
+
+# 9. Dashboard
+
+Explain everything shown on the dashboard.
+
+For every card/state explain:
+
+* Data source
+* Whether it is real or mock
+* Which service provides it
+
+---
+
+# 10. Settings
+
+Explain every setting.
+
+Include:
+
+* Roast level
+* Usage permission
+* Notification permission
+* Screen time settings
+* AI settings
+* Any persistence
+
+---
+
+# 11. Data Flow
+
+Draw the complete architecture.
+
+Example:
+
+Android UsageStats
+↓
+
+Monitoring
+↓
+
+Rule Engine
+↓
+
+Roast Engine
+↓
+
+Notification Service
+↓
+
+Dashboard
+
+Show the REAL architecture of this project.
+
+---
+
+# 12. Storage
+
+Explain everything stored locally.
+
+Include:
+
+* AsyncStorage
+* SecureStore
+* SQLite
+* MMKV
+* Any caches
+
+List every key being stored.
+
+---
+
+# 13. AI
+
+Explain:
+
+* Is OpenAI used?
+* Where?
+* How?
+* Which prompts?
+* Which models?
+* Which files?
+
+---
+
+# 14. Performance
+
+List:
+
+* Expensive operations
+* Battery concerns
+* Background limitations
+* Potential memory leaks
+* Slow screens
+* Unnecessary renders
+
+---
+
+# 15. Security
+
+List:
+
+* API keys
+* Secrets
+* Unsafe code
+* Privacy concerns
+* Android permissions
+* Anything sensitive
+
+---
+
+# 16. Code Quality
+
+Review the codebase.
+
+List:
+
+* Duplicate code
+* Large files
+* Bad architecture
+* Tight coupling
+* Technical debt
+* Dead code
+* Mock code still present
+
+---
+
+# 17. Missing Features
+
+List every missing feature needed before launch.
+
+Categorize into:
+
+Critical
+
+Important
+
+Nice to Have
+
+Future
+
+---
+
+# 18. Current Status
+
+Give an honest assessment.
+
+For each category give a score out of 10.
+
+Architecture
+
+UI
+
+UX
+
+Performance
+
+Android
+
+Reliability
+
+Notifications
+
+AI
+
+Launch Readiness
+
+Maintainability
+
+Overall
+
+---
+
+# 19. Next 20 Tasks
+
+Give the next 20 development tasks in the exact order they should be completed.
+
+For each task include:
+
+Purpose
+
+Files affected
+
+Estimated difficulty
+
+Estimated time
+
+Dependencies
+
+Priority
+
+---
+
+# 20. Final Review
+
+Pretend you are the senior engineer reviewing this code before launch.
+
+What would you approve?
+
+What would you reject?
+
+What must be fixed before release?
+
+What would you refactor?
+
+Be brutally honest.
