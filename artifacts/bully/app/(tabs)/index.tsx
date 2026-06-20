@@ -855,6 +855,8 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
               style={[
                 styles.appName,
                 { color: colors.foreground, fontFamily: "Inter_700Bold" },
