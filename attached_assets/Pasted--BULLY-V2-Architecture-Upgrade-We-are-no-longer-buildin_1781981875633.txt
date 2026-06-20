@@ -1,0 +1,489 @@
+# BULLY V2 - Architecture Upgrade
+
+We are no longer building a simple productivity tracker.
+
+We are building an Android-first AI accountability app that piggybacks on Android's UsageStatsManager.
+
+**Do NOT redesign the UI.**
+The current UI is good enough.
+Focus on architecture, maintainability, and intelligence.
+
+---
+
+# Current Architecture
+
+Already exists:
+
+* services/usageStats.ts
+* services/notifications.ts
+* services/monitoring.ts (new)
+* services/roastEngine.ts (temporary)
+* Android UsageStats native module
+* Expo Notifications
+* Dashboard
+* Settings
+* Usage permission flow
+
+Goal:
+
+Android UsageStats
+→ Monitoring Engine
+→ Behavior/Roast Engine
+→ Notification Service
+→ Dashboard
+
+The dashboard should NEVER decide when notifications are sent.
+
+---
+
+# IMPORTANT PRINCIPLES
+
+1. Android UsageStatsManager is the SINGLE source of truth.
+
+Do NOT build our own tracking engine.
+
+Read Android usage.
+
+Never duplicate Android tracking.
+
+---
+
+2. Monitoring makes decisions.
+
+Notifications only display messages.
+
+Dashboard only displays information.
+
+Keep these responsibilities completely separate.
+
+---
+
+3. Everything must be modular.
+
+No huge files.
+
+No duplicated roast text.
+
+No business logic inside React components.
+
+---
+
+# REPLACE roastEngine V1
+
+Delete the current simplistic roast engine.
+
+Replace it with a modular engine.
+
+Create:
+
+services/
+
+roastEngine/
+
+index.ts
+
+types.ts
+
+rules.ts
+
+templates.ts
+
+selector.ts
+
+personalities.ts
+
+cooldowns.ts
+
+categories.ts
+
+---
+
+# Roast Engine Requirements
+
+The engine should NOT simply pick a random string.
+
+Input:
+
+{
+appName,
+packageName,
+minutes,
+hour,
+weekday,
+productivityScore,
+gymDone,
+waterGlasses,
+readingMinutes,
+unlockCount,
+screenTimeMinutes,
+personality,
+streak,
+previousRoasts,
+trigger
+}
+
+Output:
+
+{
+title,
+message,
+severity,
+category,
+cooldownMinutes
+}
+
+---
+
+# Personalities
+
+Implement multiple personalities.
+
+Gentle
+
+Friend
+
+Sarcastic
+
+Savage
+
+Gym Bro
+
+Corporate Boss
+
+Indian Mom
+
+Anime Villain
+
+Each personality should transform the same observation differently.
+
+---
+
+# Categories
+
+Roasts should NOT be organized by app.
+
+Instead organize them by behavior.
+
+Examples:
+
+DOOMSCROLLING
+
+LATE_NIGHT
+
+BINGE
+
+LOW_PRODUCTIVITY
+
+NO_GYM
+
+LOW_WATER
+
+NO_READING
+
+HIGH_UNLOCKS
+
+GOOD_PROGRESS
+
+WEEKEND
+
+WORK_HOURS
+
+SOCIAL_MEDIA
+
+Each category should contain many templates.
+
+Apps should map into categories.
+
+Instagram
+
+↓
+
+DOOMSCROLLING
+
+Reddit
+
+↓
+
+DOOMSCROLLING
+
+YouTube
+
+↓
+
+DOOMSCROLLING
+
+Netflix
+
+↓
+
+BINGE
+
+LinkedIn
+
+↓
+
+WORK
+
+etc.
+
+---
+
+# Rule Engine
+
+Create a real rule engine.
+
+Each rule should contain
+
+id
+
+priority
+
+condition
+
+category
+
+severity
+
+cooldown
+
+enabled
+
+Example:
+
+Night Owl
+
+condition:
+
+hour >= 23
+
+priority:
+
+10
+
+category:
+
+LATE_NIGHT
+
+severity:
+
+HIGH
+
+cooldown:
+
+180 minutes
+
+---
+
+# Cooldown Engine
+
+Never repeat the same roast.
+
+Remember recent roast IDs.
+
+Respect cooldowns.
+
+Avoid showing similar notifications repeatedly.
+
+---
+
+# Selector
+
+Weighted random selection.
+
+Frequently used roasts become less likely.
+
+Recently shown roasts should almost never appear again.
+
+---
+
+# Monitoring Service
+
+Rewrite services/monitoring.ts.
+
+It should:
+
+Read UsageStats.
+
+Determine current behavior.
+
+Run the rule engine.
+
+Generate a roast.
+
+Return a decision object.
+
+It MUST NOT display notifications.
+
+It MUST NOT know React exists.
+
+It MUST NOT know about screens.
+
+---
+
+# Notifications
+
+notifications.ts should become a delivery service.
+
+It should ONLY know:
+
+showNotification()
+
+scheduleNotification()
+
+cancelNotification()
+
+Do not generate roast text here.
+
+Do not decide when to notify.
+
+Add:
+
+sendRoastNotification(title,message)
+
+---
+
+# Dashboard
+
+Dashboard should become read-only.
+
+Remove business logic.
+
+Remove notification decisions.
+
+Display current state.
+
+Display current productivity score.
+
+Display top app.
+
+Display today's verdict.
+
+---
+
+# Future Android Work
+
+Prepare architecture for:
+
+Android WorkManager
+
+Every 15 minutes
+
+↓
+
+Read UsageStats
+
+↓
+
+Monitoring Engine
+
+↓
+
+Notification Service
+
+Do NOT implement WorkManager yet.
+
+Only prepare the architecture.
+
+---
+
+# Storage
+
+Create a storage service.
+
+Remember:
+
+last roast
+
+last notification
+
+last threshold
+
+cooldowns
+
+personality
+
+daily stats
+
+This should be isolated.
+
+---
+
+# AI
+
+Do NOT call OpenAI every notification.
+
+Instead:
+
+Templates
+
+↓
+
+Behavior Engine
+
+↓
+
+Personality
+
+↓
+
+Final notification
+
+Later OpenAI may rewrite templates.
+
+The architecture should support this but not require it.
+
+---
+
+# Code Quality
+
+No duplicated roast text.
+
+No duplicated notification logic.
+
+Strong TypeScript types.
+
+Small files.
+
+Easy to extend.
+
+Easy to test.
+
+Clean architecture.
+
+No React business logic.
+
+No unnecessary complexity.
+
+---
+
+# Existing files already modified
+
+The following files have already been updated manually:
+
+services/usageStats.ts
+
+* Android remains the single source of truth.
+* Added helper methods.
+* Added support detection.
+
+services/monitoring.ts
+
+* Initial architecture exists.
+* Replace with a more advanced rule-driven implementation.
+
+services/roastEngine.ts
+
+* Temporary implementation.
+* Replace entirely with the new modular roast engine.
+
+services/notifications.ts
+
+* Keep existing notification scheduling.
+* Add sendRoastNotification().
+* Remove roast generation responsibility from this file.
+
+Do not rewrite unrelated UI unless necessary.
+
+Focus on architecture and maintainability.
+
+Think like you're building the core engine of a product that will scale to hundreds of roast templates, many personalities, premium features, weekly reports, achievements, and AI personalization.

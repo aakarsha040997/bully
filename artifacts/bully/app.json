@@ -31,12 +31,16 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      "./plugins/withUsageStats"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "99ed890c-3047-43a4-ab71-e060975ba242"
+      }
     }
   }
 }

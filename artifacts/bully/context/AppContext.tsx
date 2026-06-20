@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { Personality } from "@/services/roastEngine/types";
 
 export type RoastLevel = 1 | 2 | 3 | 4;
 
@@ -34,6 +35,7 @@ export interface DailyRecord {
 
 export interface AppSettings {
   roastLevel: RoastLevel;
+  personality: Personality;
   gymSchedule: GymSchedule;
   dailyScreenTimeLimit: number;
   notificationsEnabled: boolean;
@@ -57,6 +59,7 @@ interface AppContextValue {
 
 const defaultSettings: AppSettings = {
   roastLevel: 2,
+  personality: "SAVAGE",
   gymSchedule: { days: ["Mon", "Wed", "Fri"], time: "07:00" },
   dailyScreenTimeLimit: 120,
   notificationsEnabled: false,

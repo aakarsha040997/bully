@@ -17,12 +17,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type RoastLevel, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import {
-  cancelDailyRoast,
+  cancelDailyCheckIn,
   getAllScheduledNotifications,
   getNotificationPermissionStatus,
   requestNotificationPermission,
-  scheduleDailyRoast,
-  fireScreenTimeAlert,
+  scheduleDailyCheckIn,
+  sendRoastNotification,
 } from "@/services/notifications";
 import {
   hasUsagePermission,
@@ -157,15 +157,16 @@ export default function SettingsScreen() {
         return;
       }
       setPermStatus("granted");
-      await scheduleDailyRoast(
+      await scheduleDailyCheckIn(
         settings.notificationHour,
         settings.notificationMinute,
-        settings.roastLevel
+        "BULLY",
+        "Time to check in. What did you actually accomplish today?",
       );
       getAllScheduledNotifications().then((n) => setScheduledCount(n.length));
       updateSettings({ notificationsEnabled: true });
     } else {
-      await cancelDailyRoast();
+      await cancelDailyCheckIn();
       getAllScheduledNotifications().then((n) => setScheduledCount(n.length));
       updateSettings({ notificationsEnabled: false });
     }
@@ -175,7 +176,12 @@ export default function SettingsScreen() {
     Haptics.selectionAsync();
     updateSettings({ notificationHour: hour, notificationMinute: minute });
     if (settings.notificationsEnabled && permStatus === "granted") {
-      await scheduleDailyRoast(hour, minute, settings.roastLevel);
+      await scheduleDailyCheckIn(
+        hour,
+        minute,
+        "BULLY",
+        "Time to check in. What did you actually accomplish today?",
+      );
       getAllScheduledNotifications().then((n) => setScheduledCount(n.length));
     }
   };
@@ -187,7 +193,7 @@ export default function SettingsScreen() {
       Alert.alert("Permission needed", "Enable notifications first.");
       return;
     }
-    await fireScreenTimeAlert(settings.roastLevel);
+    await sendRoastNotification("Test Notification", "This is what your roasts will look like. Stay accountable.");
   };
 
   const handleResetAll = () => {
@@ -211,7 +217,7 @@ export default function SettingsScreen() {
           text: "Reset",
           style: "destructive",
           onPress: () => {
-            cancelDailyRoast();
+            cancelDailyCheckIn();
             updateSettings({
               roastLevel: 2,
               gymSchedule: { days: ["Mon", "Wed", "Fri"], time: "07:00" },

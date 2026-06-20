@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { fireScreenTimeAlert } from "@/services/notifications";
+import { triggerScreenTimeAlert } from "@/services/monitoring";
 import {
   hasUsagePermission,
   getTotalScreenMinutes,
@@ -372,7 +372,7 @@ export default function DashboardScreen() {
     })();
   }, []);
 
-  // Fire screen-time notification when limit is exceeded
+  // Delegate screen-time threshold decisions to the monitoring engine
   useEffect(() => {
     if (
       !screenTimeWarningFired &&
@@ -381,13 +381,21 @@ export default function DashboardScreen() {
       settings.notificationsEnabled
     ) {
       setScreenTimeWarningFired(true);
-      fireScreenTimeAlert(settings.roastLevel);
+      triggerScreenTimeAlert({
+        productivityScore,
+        gymDone: stats.gymDone,
+        waterGlasses: stats.waterGlasses,
+        readingMinutes: stats.readingMinutes,
+        unlockCount: stats.unlockCount,
+        screenTimeMinutes: stats.screenTimeMinutes,
+        streak: streaks.gym,
+        personality: settings.personality,
+      });
     }
   }, [
     stats.screenTimeMinutes,
     settings.dailyScreenTimeLimit,
     settings.notificationsEnabled,
-    settings.roastLevel,
     screenTimeWarningFired,
   ]);
 

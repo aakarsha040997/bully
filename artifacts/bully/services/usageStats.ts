@@ -1,7 +1,9 @@
 /**
  * Wrapper around the expo-usage-stats native module.
- * Gracefully no-ops on iOS and web — all callers are safe on any platform.
+ * Android is the source of truth for all app usage.
+ * Safe to import on iOS/web (returns empty values).
  */
+
 import { Platform } from "react-native";
 
 export interface AppUsage {
@@ -18,16 +20,17 @@ let native: {
 
 if (Platform.OS === "android") {
   try {
-    // Dynamic import so the module is never evaluated on iOS/web
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     native = require("expo-usage-stats");
   } catch {
     native = null;
   }
 }
 
+export const isUsageTrackingSupported = Platform.OS === "android";
+
 export async function hasUsagePermission(): Promise<boolean> {
   if (!native) return false;
+
   try {
     return await native.hasPermission();
   } catch {
@@ -37,6 +40,7 @@ export async function hasUsagePermission(): Promise<boolean> {
 
 export async function requestUsagePermission(): Promise<void> {
   if (!native) return;
+
   try {
     await native.requestPermission();
   } catch {}
@@ -44,8 +48,11 @@ export async function requestUsagePermission(): Promise<void> {
 
 export async function getAppUsageStats(): Promise<AppUsage[]> {
   if (!native) return [];
+
   try {
-    return await native.getUsageStats();
+    const stats = await native.getUsageStats();
+
+    return [...stats].sort((a, b) => b.totalMinutes - a.totalMinutes);
   } catch {
     return [];
   }
@@ -53,11 +60,28 @@ export async function getAppUsageStats(): Promise<AppUsage[]> {
 
 export async function getTotalScreenMinutes(): Promise<number> {
   const stats = await getAppUsageStats();
-  return stats.reduce((sum, s) => sum + s.totalMinutes, 0);
+
+  return stats.reduce((sum, app) => sum + app.totalMinutes, 0);
 }
 
-/** Returns the top app by foreground time, or null if unavailable. */
 export async function getTopApp(): Promise<AppUsage | null> {
   const stats = await getAppUsageStats();
-  return stats[0] ?? null;
+
+  return stats.length ? stats[0] : null;
+}
+
+export async function getUsageForPackage(
+  packageName: string,
+): Promise<AppUsage | null> {
+  const stats = await getAppUsageStats();
+
+  return stats.find((app) => app.packageName === packageName) ?? null;
+}
+
+export async function getUsageForPackages(
+  packageNames: string[],
+): Promise<AppUsage[]> {
+  const stats = await getAppUsageStats();
+
+  return stats.filter((app) => packageNames.includes(app.packageName));
 }
