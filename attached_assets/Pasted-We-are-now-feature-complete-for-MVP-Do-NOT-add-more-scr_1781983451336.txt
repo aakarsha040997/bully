@@ -1,0 +1,184 @@
+We are now feature complete for MVP.
+
+Do NOT add more screens.
+
+Do NOT redesign the UI.
+
+The next sprint is about making Bully feel alive.
+
+Implement the following improvements.
+
+# 1. Productivity Score
+
+Create Bully's signature metric.
+
+Range:
+
+0–100
+
+The score should be calculated from multiple factors instead of only screen time.
+
+Factors should include:
+
+* Total screen time
+* Social media usage
+* Entertainment usage
+* Productive app usage
+* Gym completed
+* Reading completed
+* Water intake
+* Unlock count
+* Late-night phone usage
+* Consistency streaks
+
+The calculation should be modular and easy to tune.
+
+Display:
+
+Today's Score
+
+Weekly Average
+
+Trend
+
+Reason for score
+
+---
+
+# 2. Achievement Engine
+
+Create an achievement service.
+
+Examples:
+
+First Roast
+
+Ignored 10 Notifications
+
+Stayed Under 2 Hours Screen Time
+
+7 Day Streak
+
+No Instagram Before Noon
+
+No Phone After 10 PM
+
+Closed Instagram Within 5 Minutes
+
+Read Every Day For A Week
+
+Workout Streak
+
+Hydration Streak
+
+Achievements should support:
+
+title
+
+description
+
+icon
+
+category
+
+rarity
+
+date unlocked
+
+future expansion
+
+---
+
+# 3. Share Cards
+
+Generate beautiful shareable cards.
+
+Examples:
+
+Today's Productivity Score
+
+Weekly Summary
+
+Achievement Unlocked
+
+Savage Roast
+
+Screen Time Report
+
+Cards should be suitable for Instagram Stories and X.
+
+---
+
+# 4. Better Dashboard
+
+Improve polish.
+
+Add:
+
+Today's Top Win
+
+Biggest Distraction
+
+Current Streak
+
+Next Achievement
+
+Current Personality
+
+Weekly Trend
+
+Small animations where appropriate.
+
+No redesign.
+
+Only improve.
+
+---
+
+# 5. More Roast Content
+
+Expand the template library.
+
+Increase variety.
+
+Reduce repetition.
+
+Improve humor.
+
+Support every personality.
+
+Support every major distraction app.
+
+---
+
+# 6. Polish
+
+Review entire project.
+
+Remove duplicate code.
+
+Remove dead code.
+
+Improve TypeScript types.
+
+Improve loading states.
+
+Improve empty states.
+
+Improve animations.
+
+Improve responsiveness.
+
+Improve accessibility.
+
+Fix any rough edges.
+
+---
+
+At the end provide:
+
+* Files modified
+* Performance impact
+* Remaining technical debt
+* Launch readiness score
+* Remaining blockers before Play Store release

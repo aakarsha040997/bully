@@ -2,8 +2,12 @@
  * Roast Engine — main entry point.
  *
  * generateRoast(input) is the only function consumers need.
- * It runs the rule engine, selects a template, applies personality, and
- * returns a fully-formed RoastOutput ready for delivery.
+ * It runs the rule engine, selects a template from the personality-specific
+ * JSON file, fills in placeholders, and returns a RoastOutput ready for delivery.
+ *
+ * Templates are pre-flavored per personality — no post-transform is applied.
+ * To add a new personality pack: drop a JSON file in assets/roasts/ and add
+ * an entry in services/roastEngine/templates.ts. No engine changes needed.
  *
  * Does NOT read from storage or fire notifications.
  * Caller is responsible for recording cooldowns after delivery.
@@ -11,7 +15,6 @@
 
 import { matchRule } from "./rules";
 import { selectTemplate, fillTemplate } from "./selector";
-import { applyPersonality } from "./personalities";
 import { getCategoryForApp } from "./categories";
 import type { RoastInput, RoastOutput } from "./types";
 
@@ -24,19 +27,12 @@ export { CATEGORY_LABELS } from "./categories";
  * Returns null if no rule matches (engine stays silent).
  */
 export function generateRoast(input: RoastInput): RoastOutput | null {
-  // Enrich input — infer category from the top app if not from a specific trigger
-  const enriched: RoastInput = {
-    ...input,
-    packageName: input.packageName,
-    appName: input.appName,
-  };
+  const enriched: RoastInput = { ...input };
 
   const rule = matchRule(enriched);
   if (!rule) return null;
 
-  // Determine which category's templates to draw from.
-  // If the rule's category is DOOMSCROLLING/BINGE/SOCIAL_MEDIA/WORK_HOURS,
-  // let the app mapping further refine it.
+  // Optionally refine category using the app → category map
   let category = rule.category;
   if (
     (category === "DOOMSCROLLING" ||
@@ -51,17 +47,9 @@ export function generateRoast(input: RoastInput): RoastOutput | null {
   const template = selectTemplate(category, enriched);
   if (!template) return null;
 
-  // Fill in placeholder variables
-  const rawTitle = fillTemplate(template.title, enriched);
-  const rawMessage = fillTemplate(template.message, enriched);
-
-  // Apply personality transform
-  const { title, message } = applyPersonality(
-    rawTitle,
-    rawMessage,
-    enriched.personality,
-    enriched,
-  );
+  // Templates are pre-flavored for the user's personality — fill placeholders only
+  const title = fillTemplate(template.title, enriched);
+  const message = fillTemplate(template.message, enriched);
 
   return {
     id: template.id,
