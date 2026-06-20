@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Platform,
   Pressable,
   ScrollView,
@@ -67,6 +68,449 @@ const ALL_PERSONALITIES: Personality[] = [
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 15, 30, 45];
 
+// ─── UsageAccessCard ──────────────────────────────────────────────────────────
+
+const PRIVACY_READ = [
+  "Daily total screen time",
+  "Top 10 apps by time",
+];
+
+const PRIVACY_NEVER = [
+  "Messages or calls",
+  "Browser history",
+  "Location or photos",
+];
+
+const HOW_STEPS = [
+  { icon: "gesture-tap", text: 'Tap "Grant" below' },
+  { icon: "format-list-bulleted", text: 'Find "Bully" in the list' },
+  { icon: "toggle-switch", text: "Toggle the switch ON" },
+  { icon: "arrow-left-circle", text: "Return here — Bully checks automatically" },
+];
+
+interface UsageAccessCardProps {
+  granted: boolean;
+  checking: boolean;
+  topApps: AppUsage[];
+  onGrant: () => void;
+  onRetry: () => void;
+}
+
+function UsageAccessCard({
+  granted,
+  checking,
+  topApps,
+  onGrant,
+  onRetry,
+}: UsageAccessCardProps) {
+  const colors = useColors();
+  const guideAnim = useRef(new Animated.Value(0)).current;
+  const stepAnims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+
+  useEffect(() => {
+    if (!granted) {
+      Animated.timing(guideAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start();
+
+      Animated.stagger(
+        80,
+        stepAnims.map((a) =>
+          Animated.timing(a, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ),
+      ).start();
+    }
+  }, [granted]);
+
+  const cardBorderColor = granted
+    ? "#00E676" + "40"
+    : colors.primary + "40";
+
+  return (
+    <View
+      style={[
+        usageStyles.card,
+        { backgroundColor: colors.card, borderColor: cardBorderColor },
+      ]}
+    >
+      {/* Status row */}
+      <View style={usageStyles.statusRow}>
+        <MaterialCommunityIcons
+          name={granted ? "check-circle" : "cellphone-lock"}
+          size={20}
+          color={granted ? "#00E676" : colors.primary}
+        />
+        <Text
+          style={[
+            usageStyles.statusLabel,
+            { color: colors.foreground, fontFamily: "Inter_600SemiBold" },
+          ]}
+        >
+          Screen Time Access
+        </Text>
+        <View
+          style={[
+            usageStyles.badge,
+            { backgroundColor: granted ? "#00E67620" : colors.primary + "20" },
+          ]}
+        >
+          <Text
+            style={[
+              usageStyles.badgeText,
+              {
+                color: granted ? "#00E676" : colors.primary,
+                fontFamily: "Inter_700Bold",
+              },
+            ]}
+          >
+            {granted ? "ACTIVE" : "REQUIRED"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Granted: show app usage */}
+      {granted && topApps.length > 0 && (
+        <View style={[usageStyles.divider, { borderTopColor: colors.border }]}>
+          <Text
+            style={[
+              usageStyles.sectionLabel,
+              { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" },
+            ]}
+          >
+            LAST 24H USAGE
+          </Text>
+          {topApps.slice(0, 5).map((app, i) => (
+            <View key={app.packageName} style={usageStyles.appRow}>
+              <Text
+                style={[
+                  usageStyles.appRank,
+                  { color: colors.mutedForeground, fontFamily: "Inter_500Medium" },
+                ]}
+              >
+                {i + 1}.
+              </Text>
+              <Text
+                style={[
+                  usageStyles.appName,
+                  { color: colors.foreground, fontFamily: "Inter_500Medium" },
+                ]}
+                numberOfLines={1}
+              >
+                {app.appName}
+              </Text>
+              <Text
+                style={[
+                  usageStyles.appTime,
+                  {
+                    color: i === 0 ? colors.primary : colors.mutedForeground,
+                    fontFamily: "Inter_600SemiBold",
+                  },
+                ]}
+              >
+                {app.totalMinutes}m
+              </Text>
+            </View>
+          ))}
+          <View style={usageStyles.activeBadge}>
+            <MaterialCommunityIcons
+              name="radar"
+              size={12}
+              color="#00E676"
+            />
+            <Text
+              style={[
+                usageStyles.activeText,
+                { color: "#00E676", fontFamily: "Inter_500Medium" },
+              ]}
+            >
+              Background monitoring active
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Not granted: full onboarding guide */}
+      {!granted && (
+        <Animated.View
+          style={[usageStyles.guide, { opacity: guideAnim }]}
+        >
+          {/* Why */}
+          <View style={[usageStyles.divider, { borderTopColor: colors.border }]}>
+            <Text
+              style={[
+                usageStyles.guideHeading,
+                { color: colors.foreground, fontFamily: "Inter_700Bold" },
+              ]}
+            >
+              Why Bully needs this
+            </Text>
+            <Text
+              style={[
+                usageStyles.guideBody,
+                { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+              ]}
+            >
+              Without Usage Access, Bully can only see numbers you type manually. With it, Bully reads your real screen time — so you can't lie.
+            </Text>
+          </View>
+
+          {/* Privacy grid */}
+          <View style={[usageStyles.divider, { borderTopColor: colors.border }]}>
+            <View style={usageStyles.privacyGrid}>
+              <View style={usageStyles.privacyCol}>
+                <Text
+                  style={[
+                    usageStyles.privacyHeading,
+                    { color: "#00E676", fontFamily: "Inter_600SemiBold" },
+                  ]}
+                >
+                  WE READ
+                </Text>
+                {PRIVACY_READ.map((item) => (
+                  <View key={item} style={usageStyles.privacyRow}>
+                    <MaterialCommunityIcons name="check" size={12} color="#00E676" />
+                    <Text
+                      style={[
+                        usageStyles.privacyItem,
+                        { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <View style={usageStyles.privacyCol}>
+                <Text
+                  style={[
+                    usageStyles.privacyHeading,
+                    { color: colors.primary, fontFamily: "Inter_600SemiBold" },
+                  ]}
+                >
+                  NEVER READ
+                </Text>
+                {PRIVACY_NEVER.map((item) => (
+                  <View key={item} style={usageStyles.privacyRow}>
+                    <MaterialCommunityIcons name="close" size={12} color={colors.primary} />
+                    <Text
+                      style={[
+                        usageStyles.privacyItem,
+                        { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Steps */}
+          <View style={[usageStyles.divider, { borderTopColor: colors.border }]}>
+            <Text
+              style={[
+                usageStyles.sectionLabel,
+                { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold", marginBottom: 10 },
+              ]}
+            >
+              HOW TO ENABLE
+            </Text>
+            {HOW_STEPS.map((step, i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  usageStyles.stepRow,
+                  {
+                    opacity: stepAnims[i],
+                    transform: [
+                      {
+                        translateY: stepAnims[i].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [8, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    usageStyles.stepNum,
+                    { backgroundColor: colors.primary + "20", borderColor: colors.primary + "40" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      usageStyles.stepNumText,
+                      { color: colors.primary, fontFamily: "Inter_700Bold" },
+                    ]}
+                  >
+                    {i + 1}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={step.icon as any}
+                  size={16}
+                  color={colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    usageStyles.stepText,
+                    { color: colors.foreground, fontFamily: "Inter_400Regular" },
+                  ]}
+                >
+                  {step.text}
+                </Text>
+              </Animated.View>
+            ))}
+          </View>
+
+          {/* Grant button */}
+          <Pressable
+            onPress={onGrant}
+            style={({ pressed }) => [
+              usageStyles.grantBtn,
+              {
+                backgroundColor: pressed
+                  ? colors.primary + "CC"
+                  : colors.primary,
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons name="shield-lock-open" size={18} color="#fff" />
+            <Text
+              style={[
+                usageStyles.grantBtnText,
+                { fontFamily: "Inter_700Bold" },
+              ]}
+            >
+              Grant Usage Access
+            </Text>
+          </Pressable>
+
+          {/* Retry link */}
+          <Pressable
+            onPress={onRetry}
+            style={usageStyles.retryBtn}
+            disabled={checking}
+          >
+            <MaterialCommunityIcons
+              name={checking ? "loading" : "refresh"}
+              size={14}
+              color={colors.mutedForeground}
+            />
+            <Text
+              style={[
+                usageStyles.retryText,
+                { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+              ]}
+            >
+              {checking ? "Checking…" : "Already granted? Check again"}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+const usageStyles = StyleSheet.create({
+  card: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 8,
+    gap: 0,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  statusLabel: { flex: 1, fontSize: 14 },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeText: { fontSize: 10, letterSpacing: 1 },
+  divider: {
+    paddingTop: 14,
+    marginTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  guide: { gap: 0 },
+  guideHeading: { fontSize: 13, marginBottom: 6 },
+  guideBody: { fontSize: 12, lineHeight: 18 },
+  privacyGrid: { flexDirection: "row", gap: 12 },
+  privacyCol: { flex: 1, gap: 6 },
+  privacyHeading: { fontSize: 10, letterSpacing: 1, marginBottom: 4 },
+  privacyRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  privacyItem: { fontSize: 11, flex: 1, lineHeight: 16 },
+  sectionLabel: { fontSize: 10, letterSpacing: 2 },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 4,
+  },
+  stepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepNumText: { fontSize: 11 },
+  stepText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  grantBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  grantBtnText: { color: "#fff", fontSize: 15 },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  retryText: { fontSize: 12 },
+  appRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  appRank: { fontSize: 12, width: 16 },
+  appName: { flex: 1, fontSize: 13 },
+  appTime: { fontSize: 13 },
+  activeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+  },
+  activeText: { fontSize: 11 },
+});
+
+// ─── Settings screen components ───────────────────────────────────────────────
+
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
   return (
@@ -123,6 +567,7 @@ export default function SettingsScreen() {
   >("loading");
   const [scheduledCount, setScheduledCount] = useState(0);
   const [usageGranted, setUsageGranted] = useState(false);
+  const [checkingPermission, setCheckingPermission] = useState(false);
   const [topApps, setTopApps] = useState<AppUsage[]>([]);
   const topInset = Platform.OS === "web" ? 67 : insets.top;
 
@@ -146,15 +591,22 @@ export default function SettingsScreen() {
   const handleGrantUsageAccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await requestUsagePermission();
-    // Re-check after returning from settings (user may have granted)
-    setTimeout(async () => {
+    // Re-check after returning from settings — user may have granted
+    setTimeout(() => handleRetryPermission(), 1000);
+  };
+
+  const handleRetryPermission = async () => {
+    setCheckingPermission(true);
+    try {
       const granted = await hasUsagePermission();
       setUsageGranted(granted);
       if (granted) {
         const apps = await getAppUsageStats();
         setTopApps(apps);
       }
-    }, 1000);
+    } finally {
+      setCheckingPermission(false);
+    }
   };
 
   const toggleDay = (day: string) => {
@@ -706,58 +1158,13 @@ export default function SettingsScreen() {
       {Platform.OS === "android" && (
         <>
           <SectionHeader title="ANDROID TRACKING" />
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.card, borderColor: usageGranted ? "#00E676" + "40" : colors.border, gap: 0 },
-            ]}
-          >
-            <SettingRow icon="chart-bar" label="Usage Access">
-              {usageGranted ? (
-                <View style={styles.grantedBadge}>
-                  <MaterialCommunityIcons name="check-circle" size={14} color="#00E676" />
-                  <Text style={[styles.grantedText, { color: "#00E676", fontFamily: "Inter_500Medium" }]}>Active</Text>
-                </View>
-              ) : (
-                <Pressable
-                  onPress={handleGrantUsageAccess}
-                  style={[styles.grantBtn, { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                >
-                  <Text style={[styles.grantBtnText, { fontFamily: "Inter_600SemiBold" }]}>Grant</Text>
-                </Pressable>
-              )}
-            </SettingRow>
-
-            {!usageGranted && (
-              <View style={[styles.notifHint, { borderTopColor: colors.border }]}>
-                <MaterialCommunityIcons name="information-outline" size={14} color={colors.mutedForeground} />
-                <Text style={[styles.notifHintText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-                  Grant Usage Access so Bully can read your real screen time and top apps — no more manual logging.
-                </Text>
-              </View>
-            )}
-
-            {usageGranted && topApps.length > 0 && (
-              <View style={[styles.appsSection, { borderTopColor: colors.border }]}>
-                <Text style={[styles.appsSectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-                  LAST 24H USAGE
-                </Text>
-                {topApps.slice(0, 5).map((app, i) => (
-                  <View key={app.packageName} style={styles.appRow}>
-                    <Text style={[styles.appRank, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
-                      {i + 1}.
-                    </Text>
-                    <Text style={[styles.appName, { color: colors.foreground, fontFamily: "Inter_500Medium" }]} numberOfLines={1}>
-                      {app.appName}
-                    </Text>
-                    <Text style={[styles.appTime, { color: i === 0 ? colors.primary : colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-                      {app.totalMinutes}m
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+          <UsageAccessCard
+            granted={usageGranted}
+            checking={checkingPermission}
+            topApps={topApps}
+            onGrant={handleGrantUsageAccess}
+            onRetry={handleRetryPermission}
+          />
         </>
       )}
 
@@ -956,25 +1363,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   testBtnText: { fontSize: 13 },
-  grantedBadge: { flexDirection: "row", alignItems: "center", gap: 4 },
-  grantedText: { fontSize: 12 },
-  grantBtn: {
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  grantBtnText: { color: "#fff", fontSize: 13 },
-  appsSection: {
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 8,
-  },
-  appsSectionLabel: { fontSize: 10, letterSpacing: 2, marginBottom: 4 },
-  appRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  appRank: { fontSize: 12, width: 16 },
-  appName: { flex: 1, fontSize: 13 },
-  appTime: { fontSize: 13 },
 
   personalityGrid: {
     flexDirection: "row",

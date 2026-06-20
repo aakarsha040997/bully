@@ -116,21 +116,6 @@ const defaultStats: DailyStats = {
   lastUpdated: new Date().toDateString(),
 };
 
-// Legacy helper used only for archiving yesterday's score (keeps history consistent)
-function legacyCalcScore(s: DailyStats): number {
-  return Math.max(
-    0,
-    Math.min(
-      100,
-      100 -
-        Math.floor(s.screenTimeMinutes / 5) +
-        s.waterGlasses * 3 +
-        Math.floor(s.readingMinutes / 2) +
-        (s.gymDone ? 20 : 0) -
-        Math.floor(s.shortsWatched / 5)
-    )
-  );
-}
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -175,9 +160,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (stat) {
           const parsed: DailyStats = JSON.parse(stat);
           if (parsed.lastUpdated !== new Date().toDateString()) {
+            const archivedStreaks: Streaks = st
+              ? { ...defaultStreaks, ...JSON.parse(st) }
+              : defaultStreaks;
             const yesterdayRecord: DailyRecord = {
               date: parsed.lastUpdated,
-              score: legacyCalcScore(parsed),
+              score: calculateScore(parsed, archivedStreaks).score,
               stats: parsed,
             };
             const existingHist: DailyRecord[] = hist ? JSON.parse(hist) : [];

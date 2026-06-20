@@ -119,7 +119,7 @@ export async function runMonitoringCycle(ctx: MonitoringContext): Promise<Monito
   const decision = await buildDecision(ctx, "DAILY_CHECK");
 
   if (decision.shouldNotify && decision.roast) {
-    await sendRoastNotification(decision.roast.title, decision.roast.message);
+    await sendRoastNotification(decision.roast.title, decision.roast.message, decision.roast.severity);
     await setCooldown(decision.roast.id, decision.roast.cooldownMinutes);
     await recordRoastId(decision.roast.id);
     await setLastRoast(decision.roast);
@@ -146,7 +146,7 @@ export async function triggerScreenTimeAlert(
   const decision = await buildDecision(ctx, "SCREEN_TIME_LIMIT");
 
   if (decision.shouldNotify && decision.roast) {
-    await sendRoastNotification(decision.roast.title, decision.roast.message);
+    await sendRoastNotification(decision.roast.title, decision.roast.message, decision.roast.severity);
     await setCooldown(decision.roast.id, decision.roast.cooldownMinutes);
     await recordRoastId(decision.roast.id);
     await setLastRoast(decision.roast);

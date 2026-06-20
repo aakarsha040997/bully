@@ -1,0 +1,161 @@
+We are now entering the final MVP sprint.
+
+DO NOT add any new user-facing features.
+
+DO NOT redesign the UI.
+
+DO NOT add more settings, achievements, personalities, reports or AI features.
+
+The next sprint is entirely about making Bully reliable and production-ready.
+
+---
+
+# Goal
+
+Make Bully behave like a real Android service instead of a screen-based app.
+
+---
+
+# Priority 1 (Highest)
+
+Implement reliable Android background monitoring.
+
+Requirements:
+
+* Use Android WorkManager (or the best native Android approach compatible with Expo development builds).
+* Execute approximately every 15 minutes.
+* Read Android UsageStatsManager.
+* Run the existing monitoring engine.
+* Respect cooldowns.
+* Respect notification settings.
+* Never spam notifications.
+* Keep battery usage minimal.
+* Do NOT duplicate Android tracking.
+* Android UsageStatsManager remains the single source of truth.
+
+If WorkManager cannot reliably detect foreground usage because of Android platform limitations, clearly document those limitations and implement the most reliable alternative available.
+
+---
+
+# Priority 2
+
+Improve UsageStats onboarding.
+
+Build a proper onboarding flow.
+
+Instead of only opening Android Settings, explain:
+
+Why Usage Access is needed.
+
+How to enable it.
+
+What data Bully reads.
+
+What data Bully does NOT read.
+
+Add:
+
+Permission status
+
+Success state
+
+Denied state
+
+Retry flow
+
+Animated instructions if possible.
+
+---
+
+# Priority 3
+
+Improve notification quality.
+
+Requirements:
+
+* Different notification titles.
+* Better notification grouping.
+* Android notification channel configuration.
+* Prevent duplicate notifications.
+* Better deep linking when notification is tapped.
+* Track delivered notifications for cooldowns.
+
+---
+
+# Priority 4
+
+Production readiness.
+
+Audit the project.
+
+Remove dead code.
+
+Remove duplicate code.
+
+Remove unused assets.
+
+Review TypeScript.
+
+Review AsyncStorage keys.
+
+Review memory usage.
+
+Review render performance.
+
+Review battery impact.
+
+Review startup time.
+
+---
+
+# Priority 5
+
+Play Store readiness.
+
+Prepare everything needed for release.
+
+Verify:
+
+AndroidManifest
+
+Permissions
+
+Privacy policy requirements
+
+Data Safety requirements
+
+Signing configuration
+
+AAB generation
+
+Notification permissions
+
+UsageStats permission wording
+
+Play Store review considerations
+
+If anything could cause Google Play to reject the app, identify it and fix it where possible.
+
+---
+
+# Final Report
+
+After implementation provide:
+
+1. Files changed
+
+2. Performance improvements
+
+3. Battery impact
+
+4. Remaining technical debt
+
+5. Remaining Play Store blockers
+
+6. Launch readiness score
+
+7. Exact manual testing checklist for Android
+
+Do not add new product features.
+
+Focus entirely on reliability, Android behavior, and launch readiness.

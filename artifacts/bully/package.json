@@ -56,7 +56,10 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "expo-background-fetch": "^56.0.19",
+    "expo-build-properties": "^56.0.19",
     "expo-notifications": "^56.0.18",
+    "expo-task-manager": "^56.0.19",
     "expo-usage-stats": "file:./modules/expo-usage-stats"
   }
 }

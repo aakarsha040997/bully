@@ -2,9 +2,10 @@
  * Notification Service — delivery only.
  *
  * Responsibilities:
+ *   - Notification channel configuration (Android 8+)
  *   - Permission management
- *   - Scheduling / cancelling notifications
- *   - Sending a pre-composed roast notification
+ *   - Immediate roast delivery (with per-severity channel routing)
+ *   - Daily scheduled check-in
  *
  * Does NOT generate roast text.
  * Does NOT decide when to send a notification.
@@ -13,12 +14,76 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+// ─── Channel IDs ─────────────────────────────────────────────────────────────
+
+export const CHANNELS = {
+  roasts: "bully-roasts",
+  alerts: "bully-alerts",
+  daily: "bully-daily",
+} as const;
+
+export type NotificationChannel = (typeof CHANNELS)[keyof typeof CHANNELS];
+
+// ─── Channel setup ────────────────────────────────────────────────────────────
+
+/**
+ * Create or update Android notification channels.
+ * Safe to call on every app start — setNotificationChannelAsync is idempotent.
+ * Must be called before any notification is sent.
+ */
+export async function setupNotificationChannels(): Promise<void> {
+  if (Platform.OS !== "android") return;
+
+  await Promise.all([
+    Notifications.setNotificationChannelAsync(CHANNELS.roasts, {
+      name: "Roasts",
+      description: "Bully roasts based on your daily habits",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 150, 250],
+      lightColor: "#FF1744",
+      lockscreenVisibility:
+        Notifications.AndroidNotificationVisibility.PRIVATE,
+      sound: "default",
+      enableLights: true,
+      enableVibrate: true,
+    }),
+
+    Notifications.setNotificationChannelAsync(CHANNELS.alerts, {
+      name: "Urgent Alerts",
+      description: "Immediate alerts when you cross screen-time limits",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 250, 500],
+      lightColor: "#FF1744",
+      lockscreenVisibility:
+        Notifications.AndroidNotificationVisibility.PRIVATE,
+      sound: "default",
+      enableLights: true,
+      enableVibrate: true,
+      bypassDnd: false,
+    }),
+
+    Notifications.setNotificationChannelAsync(CHANNELS.daily, {
+      name: "Daily Check-In",
+      description: "Your scheduled daily accountability notification",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 100],
+      lightColor: "#FF1744",
+      lockscreenVisibility:
+        Notifications.AndroidNotificationVisibility.PRIVATE,
+      sound: "default",
+      enableLights: true,
+      enableVibrate: true,
+    }),
+  ]);
+}
+
 // ─── Permission helpers ───────────────────────────────────────────────────────
 
 export async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === "web") return false;
 
-  const { status: existing } = (await Notifications.getPermissionsAsync()) as any;
+  const { status: existing } =
+    (await Notifications.getPermissionsAsync()) as any;
   if (existing === "granted") return true;
 
   const { status } = (await Notifications.requestPermissionsAsync()) as any;
@@ -35,19 +100,28 @@ export async function getNotificationPermissionStatus(): Promise<
 
 // ─── Immediate roast delivery ─────────────────────────────────────────────────
 
+type RoastSeverity = "NUCLEAR" | "HIGH" | "MEDIUM" | "LOW" | undefined;
+
+function channelForSeverity(severity: RoastSeverity): NotificationChannel {
+  if (severity === "NUCLEAR" || severity === "HIGH") return CHANNELS.alerts;
+  return CHANNELS.roasts;
+}
+
 /**
  * Fire an immediate notification with the provided title and message.
- * This is the only notification delivery function that should be called
- * from the monitoring engine.
+ * Routes to the correct Android channel based on severity.
  */
 export async function sendRoastNotification(
   title: string,
   message: string,
+  severity?: RoastSeverity,
 ): Promise<void> {
   if (Platform.OS === "web") return;
 
   const granted = await requestNotificationPermission();
   if (!granted) return;
+
+  const channelId = channelForSeverity(severity);
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -55,6 +129,7 @@ export async function sendRoastNotification(
       body: message,
       sound: true,
       data: { type: "roast" },
+      ...(Platform.OS === "android" && { channelId }),
     },
     trigger: null,
   });
@@ -80,7 +155,13 @@ export async function scheduleDailyCheckIn(
 
   return Notifications.scheduleNotificationAsync({
     identifier: DAILY_ROAST_ID,
-    content: { title, body, sound: true, data: { type: "daily_roast" } },
+    content: {
+      title,
+      body,
+      sound: true,
+      data: { type: "daily_roast" },
+      ...(Platform.OS === "android" && { channelId: CHANNELS.daily }),
+    },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
