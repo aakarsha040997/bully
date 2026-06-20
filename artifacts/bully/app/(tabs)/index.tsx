@@ -723,6 +723,10 @@ export default function DashboardScreen() {
         setTodaysRoast(data.verdict);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       },
+      onError: () => {
+        setTodaysRoast("AI is offline. Your stats speak for themselves — and they're not flattering.");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      },
     },
   });
 
@@ -764,7 +768,7 @@ export default function DashboardScreen() {
         screenTimeMinutes: stats.screenTimeMinutes,
         streak: streaks.gym,
         personality: settings.personality,
-      });
+      }).catch(() => {});
     }
   }, [stats.screenTimeMinutes, settings.dailyScreenTimeLimit, settings.notificationsEnabled, screenTimeWarningFired]);
 

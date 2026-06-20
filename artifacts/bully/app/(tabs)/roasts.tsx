@@ -47,6 +47,14 @@ const DURATIONS = [
   "Lost count",
 ];
 
+const FALLBACK_ROASTS = [
+  "No internet? Even your WiFi gave up on you. Impressive.",
+  "The AI is offline. Unlike your bad habits, which are very much online.",
+  "Can't reach the server. You've successfully broken even the roast machine.",
+  "Network error. Your procrastination skills, however, are working perfectly.",
+  "Offline mode engaged. The universe is protecting you from how bad this roast would've been.",
+];
+
 function buildContext(activities: string[], duration: string): string {
   if (activities.length === 0) return `doing nothing for ${duration}`;
   if (activities.length === 1) return `${activities[0]} for ${duration}`;
@@ -66,12 +74,25 @@ export default function RoastsScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  const [isOffline, setIsOffline] = useState(false);
+
   const { mutate: getRoast, isPending } = useGenerateRoast({
     mutation: {
       onSuccess: (data) => {
+        setIsOffline(false);
         setCurrentRoast(data.roast);
         setTodaysRoast(data.roast);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Animated.sequence([
+          Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+          Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        ]).start();
+      },
+      onError: () => {
+        setIsOffline(true);
+        const fallback = FALLBACK_ROASTS[Math.floor(Math.random() * FALLBACK_ROASTS.length)];
+        setCurrentRoast(fallback);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Animated.sequence([
           Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
           Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -309,15 +330,24 @@ export default function RoastsScreen() {
             styles.roastOutput,
             {
               backgroundColor: colors.card,
-              borderColor: colors.primary + "50",
+              borderColor: isOffline ? colors.border : colors.primary + "50",
               opacity: fadeAnim,
             },
           ]}
         >
-          <MaterialCommunityIcons name="fire" size={20} color={colors.primary} />
-          <Text style={[styles.roastOutputText, { color: colors.foreground, fontFamily: "Inter_500Medium" }]}>
+          <MaterialCommunityIcons
+            name={isOffline ? "wifi-off" : "fire"}
+            size={20}
+            color={isOffline ? colors.mutedForeground : colors.primary}
+          />
+          <Text style={[styles.roastOutputText, { color: isOffline ? colors.mutedForeground : colors.foreground, fontFamily: "Inter_500Medium" }]}>
             "{currentRoast}"
           </Text>
+          {isOffline && (
+            <Text style={[styles.offlineLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+              offline — local roast
+            </Text>
+          )}
         </Animated.View>
       )}
     </ScrollView>
@@ -407,4 +437,5 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   roastOutputText: { fontSize: 18, lineHeight: 28, textAlign: "center" },
+  offlineLabel: { fontSize: 11, letterSpacing: 1 },
 });

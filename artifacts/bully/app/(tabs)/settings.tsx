@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -1168,6 +1169,112 @@ export default function SettingsScreen() {
         </>
       )}
 
+      {/* ── Battery Optimization (Android) ── */}
+      {Platform.OS === "android" && (
+        <>
+          <SectionHeader title="BACKGROUND RELIABILITY" />
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                gap: 12,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: "#FF980020",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <MaterialCommunityIcons name="battery-alert" size={20} color="#FF9800" />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text
+                  style={[
+                    styles.batteryTitle,
+                    { color: colors.foreground, fontFamily: "Inter_600SemiBold" },
+                  ]}
+                >
+                  Exempt from Battery Saver
+                </Text>
+                <Text
+                  style={[
+                    styles.batteryDesc,
+                    { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+                  ]}
+                >
+                  Some Android skins (Samsung, MIUI, OPPO) kill background tasks aggressively. Exempt Bully to keep monitoring reliable.
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ gap: 6 }}>
+              {[
+                { brand: "Samsung", path: "Settings → Device Care → Battery → Background usage limits → remove Bully" },
+                { brand: "Xiaomi / MIUI", path: "Settings → Apps → Manage apps → Bully → Battery saver → No restrictions" },
+                { brand: "OPPO / Realme / Vivo", path: "Settings → Battery → App Quick Freeze → disable for Bully" },
+                { brand: "OnePlus", path: "Settings → Battery → Battery Optimization → Bully → Don't optimize" },
+              ].map(({ brand, path }) => (
+                <View
+                  key={brand}
+                  style={[
+                    styles.oemRow,
+                    { backgroundColor: colors.background, borderColor: colors.border },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.oemBrand,
+                      { color: colors.foreground, fontFamily: "Inter_600SemiBold" },
+                    ]}
+                  >
+                    {brand}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.oemPath,
+                      { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+                    ]}
+                  >
+                    {path}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                Linking.openSettings();
+              }}
+              style={[
+                styles.oemBtn,
+                { backgroundColor: "#FF980015", borderColor: "#FF980040" },
+              ]}
+            >
+              <MaterialCommunityIcons name="cog-outline" size={16} color="#FF9800" />
+              <Text
+                style={[
+                  styles.oemBtnText,
+                  { color: "#FF9800", fontFamily: "Inter_600SemiBold" },
+                ]}
+              >
+                Open App Settings
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      )}
+
       {/* ── About ── */}
       <SectionHeader title="ABOUT" />
       <View
@@ -1302,6 +1409,27 @@ const styles = StyleSheet.create({
   },
   inputUnit: { fontSize: 13 },
   valueText: { fontSize: 13 },
+  batteryTitle: { fontSize: 14 },
+  batteryDesc: { fontSize: 12, lineHeight: 18 },
+  oemRow: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  oemBrand: { fontSize: 12 },
+  oemPath: { fontSize: 11, lineHeight: 16 },
+  oemBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 10,
+  },
+  oemBtnText: { fontSize: 13 },
   resetBtn: {
     flexDirection: "row",
     alignItems: "center",

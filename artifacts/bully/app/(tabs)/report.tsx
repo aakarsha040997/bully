@@ -18,6 +18,14 @@ import { useColors } from "@/hooks/useColors";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+const FALLBACK_VERDICTS = [
+  "AI is offline. Your screen time speaks for itself — and the numbers are not flattering.",
+  "No internet, no excuses. Your habits this week don't need an AI to diagnose them.",
+  "Server's down. Spoiler: you watched too many Shorts and didn't drink enough water. You're welcome.",
+  "Offline mode. The verdict writes itself: scroll less, do more.",
+  "Can't reach the AI. The data is right there, though. You know what it means.",
+];
+
 function fmtMins(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -294,6 +302,11 @@ export default function WeeklyReportScreen() {
       onSuccess: (data) => {
         setWeeklyVerdict(data.verdict);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      },
+      onError: () => {
+        const fallback = FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
+        setWeeklyVerdict(fallback);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       },
     },
   });
