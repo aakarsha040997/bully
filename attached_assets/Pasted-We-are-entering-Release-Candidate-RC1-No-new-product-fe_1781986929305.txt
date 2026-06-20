@@ -1,0 +1,254 @@
+We are entering Release Candidate (RC1).
+
+No new product features.
+
+No UI redesign.
+
+No new screens.
+
+The goal is to make Bully production-grade.
+
+---
+
+# 1. Complete Project Audit
+
+Review the entire codebase.
+
+Find:
+
+* dead code
+* duplicate code
+* unused components
+* unused assets
+* unused dependencies
+* unnecessary renders
+* unnecessary AsyncStorage writes
+* memory leaks
+* race conditions
+* stale state
+* unnecessary re-renders
+* expensive computations
+
+Optimize everything.
+
+---
+
+# 2. Battery Optimization
+
+Review every background task.
+
+Minimize:
+
+* CPU wakeups
+* unnecessary UsageStats reads
+* duplicate monitoring cycles
+* duplicate notifications
+
+Ensure monitoring only runs when necessary.
+
+Measure approximate battery impact.
+
+---
+
+# 3. Error Handling
+
+Review every async operation.
+
+Ensure every failure has:
+
+* graceful fallback
+* logging
+* no crashes
+* user-friendly behavior
+
+Especially:
+
+UsageStats
+
+Notifications
+
+AsyncStorage
+
+Groq API
+
+WorkManager
+
+---
+
+# 4. Offline Mode
+
+Audit the app.
+
+Ensure:
+
+Everything except AI Verdict works without internet.
+
+If Groq fails:
+
+Show a local fallback verdict.
+
+Never leave the user with a blank state.
+
+---
+
+# 5. Android Compatibility
+
+Review behavior on:
+
+Samsung
+
+Pixel
+
+OnePlus
+
+Xiaomi (MIUI/HyperOS)
+
+Oppo
+
+Realme
+
+Vivo
+
+Honor
+
+Motorola
+
+Identify any OEM-specific issues.
+
+Where possible:
+
+Guide users to disable battery optimization.
+
+Document unavoidable limitations.
+
+---
+
+# 6. Play Store Compliance
+
+Review everything from Google's perspective.
+
+Verify:
+
+Manifest
+
+Permissions
+
+Data Safety
+
+Privacy Policy wording
+
+UsageStats justification
+
+Notification permission
+
+Foreground/background behavior
+
+Target SDK
+
+Adaptive icon
+
+Versioning
+
+Signing
+
+AAB generation
+
+Anything that could cause Play Store rejection should be identified.
+
+---
+
+# 7. Security Audit
+
+Verify:
+
+No API keys in client
+
+No secrets committed
+
+No unsafe storage
+
+No unnecessary permissions
+
+No debug code
+
+No logging of sensitive information
+
+---
+
+# 8. Release Checklist
+
+Generate a checklist with:
+
+Items that must be completed before launch.
+
+Include:
+
+Testing
+
+Store assets
+
+Policy
+
+Privacy
+
+Android
+
+API
+
+Build
+
+Signing
+
+Monitoring
+
+Notifications
+
+---
+
+# 9. Manual Test Plan
+
+Create a comprehensive QA checklist.
+
+Include:
+
+Fresh install
+
+Permission denied
+
+Permission granted
+
+No internet
+
+Background
+
+Phone restart
+
+Battery saver
+
+Notification tap
+
+App update
+
+Data persistence
+
+Long-term usage
+
+Stress testing
+
+Edge cases
+
+---
+
+# 10. Final Verdict
+
+If you were the senior Android engineer reviewing this app before publishing to Google Play:
+
+Would you approve it?
+
+If not,
+
+List every remaining blocker.
+
+Do not invent new features.
+
+Focus entirely on quality, reliability and production readiness.
