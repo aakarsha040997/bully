@@ -14,6 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { type Streaks, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import {
+  getAllWithStatus,
+  RARITY_COLORS,
+  type AchievementRarity,
+} from "@/services/achievements";
+
+// ─── Streak Card ────────────────────────────────────────────────────────────────
 
 interface StreakCardProps {
   streakKey: keyof Streaks;
@@ -24,7 +31,7 @@ interface StreakCardProps {
   onReset: () => void;
 }
 
-function StreakCard({ streakKey, label, icon, count, onIncrement, onReset }: StreakCardProps) {
+function StreakCard({ label, icon, count, onIncrement, onReset }: StreakCardProps) {
   const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -103,6 +110,129 @@ function StreakCard({ streakKey, label, icon, count, onIncrement, onReset }: Str
   );
 }
 
+// ─── Achievement Card ────────────────────────────────────────────────────────────
+
+interface AchievementCardProps {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  rarity: AchievementRarity;
+  unlockedAt?: string;
+}
+
+function AchievementCard({
+  title,
+  description,
+  icon,
+  rarity,
+  unlockedAt,
+}: AchievementCardProps) {
+  const colors = useColors();
+  const isUnlocked = !!unlockedAt;
+  const rarityColor = RARITY_COLORS[rarity];
+
+  const unlockedDate = unlockedAt
+    ? new Date(unlockedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : null;
+
+  return (
+    <View
+      style={[
+        styles.achievCard,
+        {
+          backgroundColor: isUnlocked ? colors.card : colors.card + "80",
+          borderColor: isUnlocked ? rarityColor + "50" : colors.border + "60",
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.achievIconWrap,
+          {
+            backgroundColor: isUnlocked ? rarityColor + "20" : colors.secondary,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={icon as any}
+          size={20}
+          color={isUnlocked ? rarityColor : colors.mutedForeground + "60"}
+          style={{ opacity: isUnlocked ? 1 : 0.35 }}
+        />
+        {!isUnlocked && (
+          <MaterialCommunityIcons
+            name="lock"
+            size={10}
+            color={colors.mutedForeground}
+            style={styles.lockOverlay}
+          />
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.achievTitleRow}>
+          <Text
+            style={[
+              styles.achievTitle,
+              {
+                color: isUnlocked ? colors.foreground : colors.mutedForeground,
+                fontFamily: "Inter_600SemiBold",
+                opacity: isUnlocked ? 1 : 0.5,
+              },
+            ]}
+          >
+            {title}
+          </Text>
+          <View
+            style={[
+              styles.rarityPill,
+              { backgroundColor: isUnlocked ? rarityColor + "25" : colors.secondary },
+            ]}
+          >
+            <Text
+              style={[
+                styles.rarityText,
+                {
+                  color: isUnlocked ? rarityColor : colors.mutedForeground,
+                  fontFamily: "Inter_600SemiBold",
+                  opacity: isUnlocked ? 1 : 0.4,
+                },
+              ]}
+            >
+              {rarity}
+            </Text>
+          </View>
+        </View>
+        <Text
+          style={[
+            styles.achievDesc,
+            {
+              color: colors.mutedForeground,
+              fontFamily: "Inter_400Regular",
+              opacity: isUnlocked ? 0.8 : 0.4,
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {description}
+        </Text>
+        {unlockedDate && (
+          <Text
+            style={[
+              styles.achievDate,
+              { color: rarityColor, fontFamily: "Inter_400Regular" },
+            ]}
+          >
+            Unlocked {unlockedDate}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ─── Streaks Config ──────────────────────────────────────────────────────────────
+
 const STREAK_CONFIG = [
   { key: "gym" as keyof Streaks, label: "Gym", icon: "dumbbell" },
   { key: "study" as keyof Streaks, label: "Study", icon: "book-open-variant" },
@@ -111,14 +241,20 @@ const STREAK_CONFIG = [
   { key: "wakeUp" as keyof Streaks, label: "Early Wake-Up", icon: "alarm" },
 ];
 
+// ─── Main Screen ─────────────────────────────────────────────────────────────────
+
 export default function StreaksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { streaks, incrementStreak, resetStreak } = useApp();
+  const { streaks, incrementStreak, resetStreak, achievements } = useApp();
   const topInset = Platform.OS === "web" ? 67 : insets.top;
 
   const totalStreak = Object.values(streaks).reduce((a, b) => a + b, 0);
   const bestStreak = Math.max(...Object.values(streaks));
+
+  const allAchievements = getAllWithStatus(achievements);
+  const unlockedCount = achievements.length;
+  const totalCount = allAchievements.length;
 
   return (
     <ScrollView
@@ -136,6 +272,7 @@ export default function StreaksScreen() {
         Consistency is the only flex.
       </Text>
 
+      {/* Summary cards */}
       <View style={styles.summaryRow}>
         <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <MaterialCommunityIcons name="lightning-bolt" size={22} color={colors.primary} />
@@ -156,16 +293,17 @@ export default function StreaksScreen() {
           </Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <MaterialCommunityIcons name="fire" size={22} color="#FF9800" />
+          <MaterialCommunityIcons name="medal" size={22} color="#FF9800" />
           <Text style={[styles.summaryNum, { color: colors.foreground, fontFamily: "Inter_700Bold" }]}>
-            {Object.values(streaks).filter((v) => v >= 7).length}
+            {unlockedCount}/{totalCount}
           </Text>
           <Text style={[styles.summaryLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-            On Fire
+            Achieved
           </Text>
         </View>
       </View>
 
+      {/* Streaks */}
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
         YOUR HABITS
       </Text>
@@ -188,15 +326,52 @@ export default function StreaksScreen() {
           Tap + to log today's activity. Tap the refresh icon to reset a broken streak.
         </Text>
       </View>
+
+      {/* Achievements */}
+      <Text
+        style={[
+          styles.sectionLabel,
+          { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold", marginTop: 28 },
+        ]}
+      >
+        ACHIEVEMENTS
+      </Text>
+      <Text
+        style={[
+          styles.achievSub,
+          { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+        ]}
+      >
+        {unlockedCount === 0
+          ? "None yet. Start logging to unlock."
+          : unlockedCount === totalCount
+          ? "All achievements unlocked. Legendary."
+          : `${unlockedCount} of ${totalCount} unlocked`}
+      </Text>
+
+      {allAchievements.map((a) => (
+        <AchievementCard
+          key={a.id}
+          id={a.id}
+          title={a.title}
+          description={a.description}
+          icon={a.icon}
+          rarity={a.rarity}
+          unlockedAt={a.unlockedAt}
+        />
+      ))}
     </ScrollView>
   );
 }
+
+// ─── Styles ─────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 20 },
   title: { fontSize: 36, letterSpacing: 4, marginBottom: 6 },
   subtitle: { fontSize: 14, marginBottom: 24 },
+
   summaryRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
   summaryCard: {
     flex: 1,
@@ -206,9 +381,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  summaryNum: { fontSize: 28 },
+  summaryNum: { fontSize: 22 },
   summaryLabel: { fontSize: 10, textAlign: "center" },
+
   sectionLabel: { fontSize: 11, letterSpacing: 2, marginBottom: 12 },
+
   card: {
     borderRadius: 16,
     borderWidth: 1,
@@ -240,6 +417,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   tipCard: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -250,4 +428,39 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tipText: { fontSize: 12, flex: 1, lineHeight: 18 },
+
+  achievSub: { fontSize: 13, marginBottom: 14, marginTop: -6 },
+  achievCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 8,
+  },
+  achievIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  lockOverlay: { position: "absolute", bottom: 0, right: 0 },
+  achievTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  achievTitle: { fontSize: 14, flex: 1 },
+  rarityPill: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  rarityText: { fontSize: 9, letterSpacing: 0.5 },
+  achievDesc: { fontSize: 11, lineHeight: 15 },
+  achievDate: { fontSize: 10, marginTop: 3 },
 });

@@ -1,5 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  calculateScore,
+  weeklyAverage,
+  scoreTrend,
+  type ScoreResult,
+  type ScoreTrend,
+} from "@/services/productivityScore";
+import {
+  loadAchievements,
+  checkAndUnlock,
+  getNextAchievement,
+  type Achievement,
+  type AchievementCheckData,
+} from "@/services/achievements";
 import type { Personality } from "@/services/roastEngine/types";
 
 export type RoastLevel = 1 | 2 | 3 | 4;
@@ -54,7 +77,15 @@ interface AppContextValue {
   incrementStreak: (key: keyof Streaks) => void;
   resetStreak: (key: keyof Streaks) => void;
   updateStats: (s: Partial<DailyStats>) => void;
+  // Score
   productivityScore: number;
+  scoreBreakdown: ScoreResult;
+  weeklyAvg: number;
+  trend: ScoreTrend;
+  // Achievements
+  achievements: Achievement[];
+  newlyUnlocked: Achievement[];
+  clearNewlyUnlocked: () => void;
 }
 
 const defaultSettings: AppSettings = {
@@ -85,7 +116,8 @@ const defaultStats: DailyStats = {
   lastUpdated: new Date().toDateString(),
 };
 
-function calcScore(s: DailyStats): number {
+// Legacy helper used only for archiving yesterday's score (keeps history consistent)
+function legacyCalcScore(s: DailyStats): number {
   return Math.max(
     0,
     Math.min(
@@ -116,9 +148,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [streaks, setStreaks] = useState<Streaks>(defaultStreaks);
   const [stats, setStats] = useState<DailyStats>(defaultStats);
-  const [todaysRoast, setTodaysRoastState] = useState<string>("Open the Roasts tab and get yours.");
+  const [todaysRoast, setTodaysRoastState] = useState<string>(
+    "Open the Roasts tab and get yours."
+  );
   const [history, setHistory] = useState<DailyRecord[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement[]>([]);
+  const achievementsRef = useRef<Achievement[]>([]);
 
+  // Hydrate from storage
   useEffect(() => {
     (async () => {
       try {
@@ -129,6 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(STORAGE_KEYS.roast),
           AsyncStorage.getItem(STORAGE_KEYS.history),
         ]);
+
         if (s) setSettings({ ...defaultSettings, ...JSON.parse(s) });
         if (st) setStreaks({ ...defaultStreaks, ...JSON.parse(st) });
         if (hist) setHistory(JSON.parse(hist));
@@ -136,33 +175,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (stat) {
           const parsed: DailyStats = JSON.parse(stat);
           if (parsed.lastUpdated !== new Date().toDateString()) {
-            // Archive yesterday before resetting
             const yesterdayRecord: DailyRecord = {
               date: parsed.lastUpdated,
-              score: calcScore(parsed),
+              score: legacyCalcScore(parsed),
               stats: parsed,
             };
             const existingHist: DailyRecord[] = hist ? JSON.parse(hist) : [];
-            const alreadyArchived = existingHist.some((r) => r.date === parsed.lastUpdated);
+            const alreadyArchived = existingHist.some(
+              (r) => r.date === parsed.lastUpdated
+            );
             if (!alreadyArchived) {
-              const newHist = [yesterdayRecord, ...existingHist].slice(0, MAX_HISTORY);
+              const newHist = [yesterdayRecord, ...existingHist].slice(
+                0,
+                MAX_HISTORY
+              );
               setHistory(newHist);
-              await AsyncStorage.setItem(STORAGE_KEYS.history, JSON.stringify(newHist));
+              await AsyncStorage.setItem(
+                STORAGE_KEYS.history,
+                JSON.stringify(newHist)
+              );
             }
-            await AsyncStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(defaultStats));
+            await AsyncStorage.setItem(
+              STORAGE_KEYS.stats,
+              JSON.stringify(defaultStats)
+            );
           } else {
             setStats(parsed);
           }
         }
+
         if (roast) setTodaysRoastState(roast);
+
+        const saved = await loadAchievements();
+        achievementsRef.current = saved;
+        setAchievements(saved);
       } catch {}
     })();
   }, []);
 
+  // Check achievements whenever stats or score changes
+  const scoreResult = useMemo(
+    () => calculateScore(stats, streaks),
+    [stats, streaks]
+  );
+
+  useEffect(() => {
+    const data: AchievementCheckData = {
+      stats,
+      streaks,
+      history,
+      score: scoreResult.score,
+    };
+    checkAndUnlock(data, achievementsRef.current).then((newly) => {
+      if (newly.length > 0) {
+        achievementsRef.current = [...achievementsRef.current, ...newly];
+        setAchievements(achievementsRef.current);
+        setNewlyUnlocked((prev) => [...prev, ...newly]);
+      }
+    });
+  }, [scoreResult.score, stats, streaks, history]);
+
   const updateSettings = useCallback((partial: Partial<AppSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...partial };
-      AsyncStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(next)).catch(() => {});
+      AsyncStorage.setItem(
+        STORAGE_KEYS.settings,
+        JSON.stringify(next)
+      ).catch(() => {});
       return next;
     });
   }, []);
@@ -170,7 +249,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const incrementStreak = useCallback((key: keyof Streaks) => {
     setStreaks((prev) => {
       const next = { ...prev, [key]: prev[key] + 1 };
-      AsyncStorage.setItem(STORAGE_KEYS.streaks, JSON.stringify(next)).catch(() => {});
+      AsyncStorage.setItem(
+        STORAGE_KEYS.streaks,
+        JSON.stringify(next)
+      ).catch(() => {});
       return next;
     });
   }, []);
@@ -178,15 +260,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resetStreak = useCallback((key: keyof Streaks) => {
     setStreaks((prev) => {
       const next = { ...prev, [key]: 0 };
-      AsyncStorage.setItem(STORAGE_KEYS.streaks, JSON.stringify(next)).catch(() => {});
+      AsyncStorage.setItem(
+        STORAGE_KEYS.streaks,
+        JSON.stringify(next)
+      ).catch(() => {});
       return next;
     });
   }, []);
 
   const updateStats = useCallback((partial: Partial<DailyStats>) => {
     setStats((prev) => {
-      const next = { ...prev, ...partial, lastUpdated: new Date().toDateString() };
-      AsyncStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(next)).catch(() => {});
+      const next = {
+        ...prev,
+        ...partial,
+        lastUpdated: new Date().toDateString(),
+      };
+      AsyncStorage.setItem(
+        STORAGE_KEYS.stats,
+        JSON.stringify(next)
+      ).catch(() => {});
       return next;
     });
   }, []);
@@ -196,7 +288,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEYS.roast, roast).catch(() => {});
   }, []);
 
-  const productivityScore = calcScore(stats);
+  const clearNewlyUnlocked = useCallback(() => setNewlyUnlocked([]), []);
+
+  const weeklyAvg = useMemo(() => weeklyAverage(history), [history]);
+  const trend = useMemo(
+    () => scoreTrend(history, scoreResult.score),
+    [history, scoreResult.score]
+  );
 
   return (
     <AppContext.Provider
@@ -211,7 +309,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         incrementStreak,
         resetStreak,
         updateStats,
-        productivityScore,
+        productivityScore: scoreResult.score,
+        scoreBreakdown: scoreResult,
+        weeklyAvg,
+        trend,
+        achievements,
+        newlyUnlocked,
+        clearNewlyUnlocked,
       }}
     >
       {children}

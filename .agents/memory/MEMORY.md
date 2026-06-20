@@ -1,0 +1,1 @@
+- [Bully app architecture](bully-arch.md) — key decisions for the Expo/RN accountability app (Bully) sprint work
