@@ -1,8 +1,13 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "5QuW23Zym4aFyngGRx2mT"
 uri = "file://artifacts/bully/assets/images/icon.png"
 type = "image"
 title = "bully app icon skull"
+
+[[outputs]]
+id = "LMeF3kZCUf4MRmKopGW6i"
+uri = "file://screenshots/bully-home.jpg"
+type = "image"
+title = "Bully — live app preview (Home screen)"
