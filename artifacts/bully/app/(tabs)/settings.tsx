@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  AppState,
   Linking,
   Platform,
   Pressable,
@@ -583,10 +584,23 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
-    hasUsagePermission().then((granted) => {
-      setUsageGranted(granted);
-      if (granted) getAppUsageStats().then(setTopApps);
+
+    const refresh = () => {
+      hasUsagePermission().then((granted) => {
+        setUsageGranted(granted);
+        if (granted) getAppUsageStats().then(setTopApps);
+      });
+    };
+
+    refresh();
+
+    // Re-check when the app returns to the foreground — granting Usage Access
+    // happens on a separate system screen, so the app backgrounds and comes back.
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
     });
+
+    return () => sub.remove();
   }, []);
 
   const handleGrantUsageAccess = async () => {

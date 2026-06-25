@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGenerateDailyReport } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Animated,
@@ -739,17 +740,27 @@ export default function DashboardScreen() {
     ).start();
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-    (async () => {
-      const granted = await hasUsagePermission();
-      if (!granted) return;
-      setAutoTracking(true);
-      const [totalMins, top] = await Promise.all([getTotalScreenMinutes(), getTopApp()]);
-      updateStats({ screenTimeMinutes: totalMins });
-      setTopApp(top);
-    })();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      let cancelled = false;
+      (async () => {
+        const granted = await hasUsagePermission();
+        if (!granted || cancelled) return;
+        setAutoTracking(true);
+        const [totalMins, top] = await Promise.all([
+          getTotalScreenMinutes(),
+          getTopApp(),
+        ]);
+        if (cancelled) return;
+        updateStats({ screenTimeMinutes: totalMins });
+        setTopApp(top);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   useEffect(() => {
     if (
