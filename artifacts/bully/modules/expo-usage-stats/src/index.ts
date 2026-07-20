@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from "react-native";
+import { Platform } from "react-native";
 
 export interface AppUsage {
   packageName: string;
@@ -6,9 +6,23 @@ export interface AppUsage {
   totalMinutes: number;
 }
 
-// Only access the native module on Android; it won't exist on other platforms.
-const ExpoUsageStats =
-  Platform.OS === "android" ? (NativeModules.ExpoUsageStats ?? null) : null;
+// The Kotlin module uses the new Expo Modules system (ModuleDefinition).
+// New-style modules are NOT exposed via NativeModules — they must be accessed
+// via requireNativeModule() from expo-modules-core.
+let ExpoUsageStats: {
+  hasPermission: () => Promise<boolean>;
+  requestPermission: () => Promise<void>;
+  getUsageStats: () => Promise<AppUsage[]>;
+} | null = null;
+
+if (Platform.OS === "android") {
+  try {
+    const { requireNativeModule } = require("expo-modules-core");
+    ExpoUsageStats = requireNativeModule("ExpoUsageStats");
+  } catch {
+    ExpoUsageStats = null;
+  }
+}
 
 /** Returns true if the user has granted Usage Access permission (Android only). */
 export async function hasPermission(): Promise<boolean> {
@@ -22,6 +36,7 @@ export async function hasPermission(): Promise<boolean> {
 
 /**
  * Opens Android Settings → Usage Access so the user can grant permission.
+ * Deep-links directly to Bully's toggle on Android 10+.
  * No-op on iOS/web.
  */
 export async function requestPermission(): Promise<void> {
@@ -32,7 +47,7 @@ export async function requestPermission(): Promise<void> {
 }
 
 /**
- * Returns last-24h per-app usage sorted descending by time, system apps excluded.
+ * Returns today's per-app usage sorted descending by time, system apps excluded.
  * Returns [] if permission not granted or not on Android.
  */
 export async function getUsageStats(): Promise<AppUsage[]> {
