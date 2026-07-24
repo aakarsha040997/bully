@@ -13,8 +13,9 @@ export interface AppUsage {
 }
 
 let native: {
+  isNativeModuleLoaded: () => boolean;
   hasPermission: () => Promise<boolean>;
-  requestPermission: () => Promise<void>;
+  requestPermission: () => Promise<boolean>;
   getUsageStats: () => Promise<AppUsage[]>;
 } | null = null;
 
@@ -38,12 +39,29 @@ export async function hasUsagePermission(): Promise<boolean> {
   }
 }
 
-export async function requestUsagePermission(): Promise<void> {
-  if (!native) return;
+/** Returns true if the native ExpoUsageStats module loaded successfully. */
+export function isNativeModuleLoaded(): boolean {
+  if (!native) return false;
+  try {
+    return native.isNativeModuleLoaded();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Opens the Usage Access settings screen.
+ * Returns true if the native module launched the intent successfully,
+ * false if the native module is unavailable (caller should use a Linking fallback).
+ */
+export async function requestUsagePermission(): Promise<boolean> {
+  if (!native) return false;
 
   try {
-    await native.requestPermission();
-  } catch {}
+    return await native.requestPermission();
+  } catch {
+    return false;
+  }
 }
 
 export async function getAppUsageStats(): Promise<AppUsage[]> {

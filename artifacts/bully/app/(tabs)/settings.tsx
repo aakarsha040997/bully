@@ -32,6 +32,7 @@ import {
 } from "@/services/notifications";
 import {
   hasUsagePermission,
+  isNativeModuleLoaded,
   requestUsagePermission,
   getAppUsageStats,
   type AppUsage,
@@ -605,9 +606,18 @@ export default function SettingsScreen() {
 
   const handleGrantUsageAccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await requestUsagePermission();
+    const launched = await requestUsagePermission();
+    if (!launched) {
+      // Native module unavailable — fall back to opening Usage Access settings
+      // via Linking so the button always does something on Android.
+      const USAGE_ACCESS_ACTION =
+        "android.settings.action.USAGE_ACCESS_SETTINGS";
+      await Linking.openURL(
+        `intent:#Intent;action=${USAGE_ACCESS_ACTION};end`,
+      ).catch(() => Linking.openSettings());
+    }
     // Re-check after returning from settings — user may have granted
-    setTimeout(() => handleRetryPermission(), 1000);
+    setTimeout(() => handleRetryPermission(), 1500);
   };
 
   const handleRetryPermission = async () => {

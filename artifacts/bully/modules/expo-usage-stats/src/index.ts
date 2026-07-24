@@ -24,6 +24,11 @@ if (Platform.OS === "android") {
   }
 }
 
+/** True if the native ExpoUsageStats module was successfully loaded. */
+export function isNativeModuleLoaded(): boolean {
+  return ExpoUsageStats !== null;
+}
+
 /** Returns true if the user has granted Usage Access permission (Android only). */
 export async function hasPermission(): Promise<boolean> {
   if (!ExpoUsageStats) return false;
@@ -37,13 +42,16 @@ export async function hasPermission(): Promise<boolean> {
 /**
  * Opens Android Settings → Usage Access so the user can grant permission.
  * Deep-links directly to Bully's toggle on Android 10+.
- * No-op on iOS/web.
+ * Returns true if the native module launched the intent, false if it could not.
  */
-export async function requestPermission(): Promise<void> {
-  if (!ExpoUsageStats) return;
+export async function requestPermission(): Promise<boolean> {
+  if (!ExpoUsageStats) return false;
   try {
     await ExpoUsageStats.requestPermission();
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
