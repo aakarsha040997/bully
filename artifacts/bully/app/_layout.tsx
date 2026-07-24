@@ -16,13 +16,17 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import Constants from "expo-constants";
+
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
 import { registerBackgroundMonitoring } from "@/services/backgroundTask";
 import { setupNotificationChannels } from "@/services/notifications";
 
-if (process.env.EXPO_PUBLIC_DOMAIN) {
-  setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+const apiDomain: string =
+  (Constants.expoConfig?.extra?.apiDomain as string | undefined) ?? "";
+if (apiDomain) {
+  setBaseUrl(`https://${apiDomain}`);
 }
 
 if (Platform.OS !== "web") {
