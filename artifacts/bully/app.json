@@ -46,7 +46,6 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      "./plugins/usageStats.js",
       [
         "expo-router",
         {

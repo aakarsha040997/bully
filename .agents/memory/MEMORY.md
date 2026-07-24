@@ -1,1 +1,3 @@
 - [Bully app architecture](bully-arch.md) — key decisions for the Expo/RN accountability app (Bully) sprint work
+---
+- [Expo gitignore android pattern](expo-gitignore-android.md) — bare `android/` in .gitignore ignores local module source; use `/android/` instead

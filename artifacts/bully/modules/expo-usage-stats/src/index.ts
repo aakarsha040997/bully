@@ -1,4 +1,5 @@
-import { NativeModules, Platform } from "react-native";
+import { requireNativeModule } from "expo-modules-core";
+import { Platform } from "react-native";
 
 export interface AppUsage {
   packageName: string;
@@ -6,8 +7,6 @@ export interface AppUsage {
   totalMinutes: number;
 }
 
-// Legacy React Native module registered via ReactPackage in MainApplication.
-// Accessible through NativeModules (works with new architecture interop layer).
 let ExpoUsageStats: {
   hasPermission: () => Promise<boolean>;
   requestPermission: () => Promise<boolean>;
@@ -15,7 +14,11 @@ let ExpoUsageStats: {
 } | null = null;
 
 if (Platform.OS === "android") {
-  ExpoUsageStats = (NativeModules as Record<string, unknown>).ExpoUsageStats as typeof ExpoUsageStats ?? null;
+  try {
+    ExpoUsageStats = requireNativeModule("ExpoUsageStats");
+  } catch {
+    ExpoUsageStats = null;
+  }
 }
 
 /** True if the native ExpoUsageStats module was successfully loaded. */

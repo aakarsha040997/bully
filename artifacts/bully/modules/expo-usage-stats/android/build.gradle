@@ -1,0 +1,32 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+  compileSdk 36
+  namespace 'expo.modules.usagestats'
+
+  defaultConfig {
+    minSdk 24
+    targetSdk 35
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = '17'
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  // expo-modules-core provides the Module/ModuleDefinition base classes.
+  // compileOnly so it isn't bundled again — the main app already ships it.
+  compileOnly project(':expo-modules-core')
+}
