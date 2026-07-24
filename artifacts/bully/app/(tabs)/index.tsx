@@ -5,6 +5,7 @@ import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Animated,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -721,25 +722,45 @@ export default function DashboardScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const roastCardY = useRef<number>(0);
 
+  // Roast popup modal
+  const [roastModalVisible, setRoastModalVisible] = useState(false);
+  const [modalRoast, setModalRoast] = useState("");
+  const slideAnim = useRef(new Animated.Value(600)).current;
+
+  const showRoastModal = (text: string) => {
+    setModalRoast(text);
+    setRoastModalVisible(true);
+    slideAnim.setValue(600);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const hideRoastModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: 600,
+      duration: 260,
+      useNativeDriver: true,
+    }).start(() => setRoastModalVisible(false));
+  };
+
   const { mutate: getVerdict, isPending } = useGenerateDailyReport({
     mutation: {
       onSuccess: (data) => {
         setTodaysRoast(data.verdict);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        // Push the fresh roast into the running overlay monitoring service
         updateOverlayRoast(data.verdict).catch(() => {});
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: roastCardY.current - 16, animated: true });
-        }, 100);
+        showRoastModal(data.verdict);
       },
       onError: () => {
         const fallback = "AI is offline. Your stats speak for themselves — and they're not flattering.";
         setTodaysRoast(fallback);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         updateOverlayRoast(fallback).catch(() => {});
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: roastCardY.current - 16, animated: true });
-        }, 100);
+        showRoastModal(fallback);
       },
     },
   });
@@ -867,6 +888,89 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+
+      {/* ── Roast Popup Modal (MyGate-style) ── */}
+      <Modal
+        visible={roastModalVisible}
+        transparent
+        statusBarTranslucent
+        animationType="none"
+        onRequestClose={hideRoastModal}
+      >
+        {/* Dim overlay — tap to dismiss */}
+        <Pressable style={styles.modalBackdrop} onPress={hideRoastModal}>
+          {/* Card slides up from bottom */}
+          <Animated.View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.card,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+            // Prevent taps inside card from closing
+            onStartShouldSetResponder={() => true}
+          >
+            {/* Red lightning icon badge */}
+            <View style={[styles.modalIconBadge, { backgroundColor: colors.primary + "20" }]}>
+              <MaterialCommunityIcons name="lightning-bolt" size={32} color={colors.primary} />
+            </View>
+
+            {/* Label */}
+            <Text
+              style={[
+                styles.modalLabel,
+                { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" },
+              ]}
+            >
+              TODAY'S VERDICT
+            </Text>
+
+            {/* Roast text */}
+            <Text
+              style={[
+                styles.modalRoastText,
+                { color: colors.foreground, fontFamily: "Inter_500Medium" },
+              ]}
+            >
+              "{modalRoast}"
+            </Text>
+
+            {/* Action row */}
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => {
+                  hideRoastModal();
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setTimeout(handleShare, 350);
+                }}
+                style={({ pressed }) => [
+                  styles.modalShareBtn,
+                  { borderColor: colors.border, opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <MaterialCommunityIcons name="share-variant" size={18} color={colors.mutedForeground} />
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  hideRoastModal();
+                }}
+                style={({ pressed }) => [
+                  styles.modalDismissBtn,
+                  { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1, flex: 1 },
+                ]}
+              >
+                <Text style={[styles.modalDismissText, { fontFamily: "Inter_700Bold" }]}>
+                  Got it. I'll do better.
+                </Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Modal>
+
       <ScrollView
         ref={scrollViewRef}
         style={styles.container}
@@ -1193,6 +1297,70 @@ const styles = StyleSheet.create({
   highlightMeta: { fontSize: 9, letterSpacing: 1.5 },
   highlightLabel: { fontSize: 13 },
   highlightPoints: { fontSize: 14 },
+
+  // Roast popup modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 36,
+    alignItems: "center",
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 24,
+  },
+  modalIconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  modalLabel: {
+    fontSize: 10,
+    letterSpacing: 2.5,
+  },
+  modalRoastText: {
+    fontSize: 20,
+    lineHeight: 30,
+    textAlign: "center",
+    marginVertical: 8,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+    alignSelf: "stretch",
+  },
+  modalShareBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalDismissBtn: {
+    height: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  modalDismissText: {
+    color: "#fff",
+    fontSize: 15,
+  },
 
   roastCard: {
     borderRadius: 16,
