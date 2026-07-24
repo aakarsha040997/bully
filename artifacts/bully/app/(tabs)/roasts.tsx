@@ -15,8 +15,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import Constants from "expo-constants";
-
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -473,7 +471,7 @@ export default function RoastsScreen() {
         {/* Debug: show API URL + last error */}
         <View style={{ backgroundColor: "#111", borderRadius: 8, padding: 10, marginBottom: 12 }}>
           <Text style={{ color: "#0f0", fontSize: 10, fontFamily: "Inter_400Regular" }}>
-            URL: {`https://${(Constants.expoConfig?.extra?.apiDomain as string) || "UNDEFINED"}/api/roast`}
+            URL: https://a4b508d4-e546-405f-8919-adb679fd27a3-00-30jr5gsuv08dy.pike.replit.dev/api/roast
           </Text>
           {lastError && (
             <Text style={{ color: "#f55", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 4 }}>
