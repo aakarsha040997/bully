@@ -27,6 +27,7 @@
       },
       "permissions": [
         "android.permission.PACKAGE_USAGE_STATS",
+        "android.permission.QUERY_ALL_PACKAGES",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
