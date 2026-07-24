@@ -35,6 +35,11 @@ import {
   isNativeModuleLoaded,
   requestUsagePermission,
   getAppUsageStats,
+  hasOverlayPermission,
+  requestOverlayPermission,
+  startOverlayMonitoring,
+  stopOverlayMonitoring,
+  showRoastOverlay,
   type AppUsage,
 } from "@/services/usageStats";
 
@@ -572,6 +577,10 @@ export default function SettingsScreen() {
   const [usageGranted, setUsageGranted] = useState(false);
   const [checkingPermission, setCheckingPermission] = useState(false);
   const [topApps, setTopApps] = useState<AppUsage[]>([]);
+  const [overlayGranted, setOverlayGranted] = useState(false);
+  const [overlayMonitoring, setOverlayMonitoring] = useState(false);
+  const [testingOverlay, setTestingOverlay] = useState(false);
+  const { todaysRoast } = useApp();
   const topInset = Platform.OS === "web" ? 67 : insets.top;
 
   useEffect(() => {
@@ -591,11 +600,12 @@ export default function SettingsScreen() {
         setUsageGranted(granted);
         if (granted) getAppUsageStats().then(setTopApps);
       });
+      hasOverlayPermission().then(setOverlayGranted);
     };
 
     refresh();
 
-    // Re-check when the app returns to the foreground — granting Usage Access
+    // Re-check when the app returns to the foreground — granting permissions
     // happens on a separate system screen, so the app backgrounds and comes back.
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") refresh();
@@ -603,6 +613,64 @@ export default function SettingsScreen() {
 
     return () => sub.remove();
   }, []);
+
+  const handleGrantOverlayPermission = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await requestOverlayPermission();
+    setTimeout(async () => {
+      const granted = await hasOverlayPermission();
+      setOverlayGranted(granted);
+    }, 1500);
+  };
+
+  const handleToggleOverlayMonitoring = async (value: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (value) {
+      if (!overlayGranted) {
+        Alert.alert(
+          "Permission needed",
+          "Grant 'Display over other apps' first so Bully can show overlays.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+      if (!usageGranted) {
+        Alert.alert(
+          "Permission needed",
+          "Grant Usage Access first so Bully can detect which app is open.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+      // Common distraction apps — user can customise later
+      const distractionPackages = [
+        "com.instagram.android",
+        "com.zhiliaoapp.musically",  // TikTok
+        "com.snapchat.android",
+        "com.reddit.frontpage",
+        "com.twitter.android",
+        "com.facebook.katana",
+        "com.youtube.android",
+        "com.google.android.youtube",
+      ];
+      const started = await startOverlayMonitoring(distractionPackages, todaysRoast);
+      setOverlayMonitoring(started);
+    } else {
+      await stopOverlayMonitoring();
+      setOverlayMonitoring(false);
+    }
+  };
+
+  const handleTestOverlay = async () => {
+    if (!overlayGranted) {
+      Alert.alert("Permission needed", "Grant 'Display over other apps' first.");
+      return;
+    }
+    setTestingOverlay(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    await showRoastOverlay(todaysRoast || "You're testing instead of working. Classic.");
+    setTimeout(() => setTestingOverlay(false), 1500);
+  };
 
   const handleGrantUsageAccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -1203,6 +1271,168 @@ export default function SettingsScreen() {
           >
             {`mod:${isNativeModuleLoaded() ? "ok" : "null"} perm:${usageGranted ? "y" : "n"} apps:${topApps.length}`}
           </Text>
+        </>
+      )}
+
+      {/* ── App Overlay ── */}
+      {Platform.OS === "android" && (
+        <>
+          <SectionHeader title="APP OVERLAY" />
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: overlayGranted ? colors.primary + "40" : colors.border,
+              },
+            ]}
+          >
+            {/* Permission row */}
+            <View style={usageStyles.statusRow}>
+              <MaterialCommunityIcons
+                name={overlayGranted ? "layers" : "layers-off"}
+                size={20}
+                color={overlayGranted ? colors.primary : colors.mutedForeground}
+              />
+              <Text
+                style={[
+                  usageStyles.statusLabel,
+                  { color: colors.foreground, fontFamily: "Inter_600SemiBold" },
+                ]}
+              >
+                Display Over Other Apps
+              </Text>
+              <View
+                style={[
+                  usageStyles.badge,
+                  {
+                    backgroundColor: overlayGranted
+                      ? colors.primary + "20"
+                      : colors.secondary,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    usageStyles.badgeText,
+                    {
+                      color: overlayGranted ? colors.primary : colors.mutedForeground,
+                      fontFamily: "Inter_700Bold",
+                    },
+                  ]}
+                >
+                  {overlayGranted ? "GRANTED" : "REQUIRED"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Grant button (shown when not granted) */}
+            {!overlayGranted && (
+              <Pressable
+                onPress={handleGrantOverlayPermission}
+                style={({ pressed }) => [
+                  usageStyles.grantBtn,
+                  {
+                    backgroundColor: pressed
+                      ? colors.primary + "CC"
+                      : colors.primary,
+                    marginTop: 14,
+                    opacity: pressed ? 0.9 : 1,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons name="layers" size={18} color="#fff" />
+                <Text style={[usageStyles.grantBtnText, { fontFamily: "Inter_700Bold" }]}>
+                  Grant Overlay Permission
+                </Text>
+              </Pressable>
+            )}
+
+            {/* Description */}
+            <Text
+              style={[
+                styles.cardSubLabel,
+                {
+                  color: colors.mutedForeground,
+                  fontFamily: "Inter_400Regular",
+                  marginTop: 12,
+                  lineHeight: 18,
+                },
+              ]}
+            >
+              {overlayGranted
+                ? "Bully can now show a roast on top of any app when you open Instagram, TikTok, or other distractions."
+                : "Allows Bully to pop up a roast overlay on top of distraction apps — like MyGate does for deliveries."}
+            </Text>
+
+            {/* Monitoring toggle (only if both permissions granted) */}
+            {overlayGranted && usageGranted && (
+              <View
+                style={[
+                  usageStyles.divider,
+                  { borderTopColor: colors.border, gap: 0 },
+                ]}
+              >
+                <SettingRow icon="radar" label="Monitor distraction apps">
+                  <Switch
+                    value={overlayMonitoring}
+                    onValueChange={handleToggleOverlayMonitoring}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor="#ffffff"
+                  />
+                </SettingRow>
+                {overlayMonitoring && (
+                  <Text
+                    style={[
+                      styles.cardSubLabel,
+                      {
+                        color: colors.mutedForeground,
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 11,
+                        marginTop: 4,
+                      },
+                    ]}
+                  >
+                    Watching: Instagram, TikTok, Snapchat, Reddit, Twitter, Facebook, YouTube
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Test button (only if overlay granted) */}
+            {overlayGranted && (
+              <View
+                style={[usageStyles.divider, { borderTopColor: colors.border }]}
+              >
+                <Pressable
+                  onPress={handleTestOverlay}
+                  disabled={testingOverlay}
+                  style={({ pressed }) => [
+                    styles.testBtn,
+                    {
+                      backgroundColor: colors.primary + "15",
+                      borderColor: colors.primary + "40",
+                      opacity: pressed || testingOverlay ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="eye-check"
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.testBtnText,
+                      { color: colors.primary, fontFamily: "Inter_600SemiBold" },
+                    ]}
+                  >
+                    {testingOverlay ? "Showing…" : "Preview overlay now"}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
         </>
       )}
 

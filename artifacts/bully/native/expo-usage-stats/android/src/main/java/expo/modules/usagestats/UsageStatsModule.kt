@@ -22,9 +22,11 @@ class UsageStatsModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoUsageStats")
 
+    // ── Usage Access ─────────────────────────────────────────────────────────
+
     AsyncFunction("hasPermission") {
       val context = appContext.reactContext ?: throw Exception("No React context")
-      val granted = checkPermission(context)
+      val granted = checkUsagePermission(context)
       Log.d(TAG, "hasPermission → $granted | device=${Build.MANUFACTURER} ${Build.MODEL} API=${Build.VERSION.SDK_INT}")
       granted
     }
@@ -51,7 +53,7 @@ class UsageStatsModule : Module() {
       val context = appContext.reactContext ?: throw Exception("No React context")
       Log.d(TAG, "getUsageStats called | device=${Build.MANUFACTURER} ${Build.MODEL} API=${Build.VERSION.SDK_INT}")
 
-      val granted = checkPermission(context)
+      val granted = checkUsagePermission(context)
       Log.d(TAG, "getUsageStats: permission granted = $granted")
       if (!granted) {
         return@AsyncFunction emptyList<Map<String, Any>>()
@@ -91,10 +93,7 @@ class UsageStatsModule : Module() {
         }
         .sortedByDescending { it.totalTimeInForeground }
 
-      Log.d(TAG, "getUsageStats: after filter/sort → ${filtered.size} apps (had ${statsMap.size} total, ${statsMap.values.count { it.totalTimeInForeground > 60_000L }} above 1-min threshold)")
-      filtered.take(5).forEach {
-        Log.d(TAG, "  ${it.packageName} → ${it.totalTimeInForeground / 60_000}min")
-      }
+      Log.d(TAG, "getUsageStats: after filter/sort → ${filtered.size} apps")
 
       val result = filtered.take(10).map { stat ->
         val appName = try {
@@ -114,9 +113,136 @@ class UsageStatsModule : Module() {
       Log.d(TAG, "getUsageStats: returning ${result.size} entries")
       result
     }
+
+    // ── Overlay Permission ────────────────────────────────────────────────────
+
+    AsyncFunction("hasOverlayPermission") {
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        Settings.canDrawOverlays(context)
+      } else {
+        true
+      }
+      Log.d(TAG, "hasOverlayPermission → $granted | API=${Build.VERSION.SDK_INT}")
+      granted
+    }
+
+    AsyncFunction("requestOverlayPermission") {
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+        Log.d(TAG, "requestOverlayPermission → pre-M, always granted")
+        return@AsyncFunction true
+      }
+      Log.d(TAG, "requestOverlayPermission → opening ACTION_MANAGE_OVERLAY_PERMISSION for ${context.packageName}")
+      val intent = Intent(
+        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+        Uri.fromParts("package", context.packageName, null)
+      ).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+      }
+      val activity = appContext.currentActivity
+      if (activity != null) {
+        activity.startActivity(intent)
+      } else {
+        context.startActivity(intent)
+      }
+      true
+    }
+
+    // ── Overlay Control ───────────────────────────────────────────────────────
+
+    /**
+     * Start background monitoring. When any package in [packages] comes to
+     * the foreground, an overlay showing [roastText] is displayed.
+     */
+    AsyncFunction("startOverlayMonitoring") { packages: List<String>, roastText: String ->
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      Log.d(TAG, "startOverlayMonitoring: packages=$packages roast='${roastText.take(60)}…'")
+
+      OverlayService.monitoredPackages = packages.toSet()
+      OverlayService.currentRoast = roastText
+
+      val intent = Intent(context, OverlayService::class.java).apply {
+        putExtra(OverlayService.EXTRA_COMMAND, OverlayService.CMD_START)
+        putStringArrayListExtra(OverlayService.EXTRA_PACKAGES, ArrayList(packages))
+        putExtra(OverlayService.EXTRA_ROAST, roastText)
+      }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
+      Log.d(TAG, "startOverlayMonitoring: service intent sent")
+      true
+    }
+
+    /** Stop background monitoring and hide any visible overlay. */
+    AsyncFunction("stopOverlayMonitoring") {
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      Log.d(TAG, "stopOverlayMonitoring")
+      val intent = Intent(context, OverlayService::class.java).apply {
+        putExtra(OverlayService.EXTRA_COMMAND, OverlayService.CMD_STOP)
+      }
+      context.startService(intent)
+      true
+    }
+
+    /** Immediately show an overlay with the given roast text (for testing or manual trigger). */
+    AsyncFunction("showRoastOverlay") { roastText: String ->
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      Log.d(TAG, "showRoastOverlay: '${roastText.take(60)}…'")
+
+      OverlayService.currentRoast = roastText
+      val intent = Intent(context, OverlayService::class.java).apply {
+        putExtra(OverlayService.EXTRA_COMMAND, OverlayService.CMD_SHOW_NOW)
+        putExtra(OverlayService.EXTRA_ROAST, roastText)
+      }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
+      true
+    }
+
+    /** Hide the overlay if it is currently visible. */
+    AsyncFunction("hideRoastOverlay") {
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      Log.d(TAG, "hideRoastOverlay")
+      val intent = Intent(context, OverlayService::class.java).apply {
+        putExtra(OverlayService.EXTRA_COMMAND, OverlayService.CMD_HIDE_NOW)
+      }
+      context.startService(intent)
+      true
+    }
+
+    /** Update the roast text in a running monitoring session without restarting. */
+    AsyncFunction("updateOverlayRoast") { roastText: String ->
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      Log.d(TAG, "updateOverlayRoast: '${roastText.take(60)}…'")
+      OverlayService.currentRoast = roastText
+      val intent = Intent(context, OverlayService::class.java).apply {
+        putExtra(OverlayService.EXTRA_COMMAND, OverlayService.CMD_UPDATE_ROAST)
+        putExtra(OverlayService.EXTRA_ROAST, roastText)
+      }
+      context.startService(intent)
+      true
+    }
+
+    /** Returns true if the overlay service is currently running. */
+    Function("isOverlayServiceRunning") {
+      OverlayService.serviceRunning
+    }
+
+    /** Returns true if an overlay is currently visible on screen. */
+    Function("isOverlayVisible") {
+      OverlayService.overlayVisible
+    }
   }
 
-  private fun checkPermission(context: Context): Boolean {
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  private fun checkUsagePermission(context: Context): Boolean {
     return try {
       val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
       val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -134,10 +260,10 @@ class UsageStatsModule : Module() {
         )
       }
       val allowed = mode == AppOpsManager.MODE_ALLOWED
-      Log.d(TAG, "checkPermission: mode=$mode allowed=$allowed uid=${Process.myUid()} pkg=${context.packageName}")
+      Log.d(TAG, "checkUsagePermission: mode=$mode allowed=$allowed uid=${Process.myUid()} pkg=${context.packageName}")
       allowed
     } catch (e: Exception) {
-      Log.e(TAG, "checkPermission threw: ${e.message}", e)
+      Log.e(TAG, "checkUsagePermission threw: ${e.message}", e)
       false
     }
   }

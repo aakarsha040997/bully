@@ -22,6 +22,7 @@ import {
   hasUsagePermission,
   getTotalScreenMinutes,
   getTopApp,
+  updateOverlayRoast,
   type AppUsage,
 } from "@/services/usageStats";
 import { getNextAchievement, RARITY_COLORS } from "@/services/achievements";
@@ -717,16 +718,28 @@ export default function DashboardScreen() {
   const [screenTimeWarningFired, setScreenTimeWarningFired] = useState(false);
   const [autoTracking, setAutoTracking] = useState(false);
   const [topApp, setTopApp] = useState<AppUsage | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const roastCardY = useRef<number>(0);
 
   const { mutate: getVerdict, isPending } = useGenerateDailyReport({
     mutation: {
       onSuccess: (data) => {
         setTodaysRoast(data.verdict);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        // Push the fresh roast into the running overlay monitoring service
+        updateOverlayRoast(data.verdict).catch(() => {});
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: roastCardY.current - 16, animated: true });
+        }, 100);
       },
       onError: () => {
-        setTodaysRoast("AI is offline. Your stats speak for themselves — and they're not flattering.");
+        const fallback = "AI is offline. Your stats speak for themselves — and they're not flattering.";
+        setTodaysRoast(fallback);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        updateOverlayRoast(fallback).catch(() => {});
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: roastCardY.current - 16, animated: true });
+        }, 100);
       },
     },
   });
@@ -855,6 +868,7 @@ export default function DashboardScreen() {
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.container}
         contentContainerStyle={[
           styles.content,
@@ -902,6 +916,7 @@ export default function DashboardScreen() {
 
         {/* Today's verdict */}
         <Animated.View
+          onLayout={(e) => { roastCardY.current = e.nativeEvent.layout.y; }}
           style={[
             styles.roastCard,
             {
@@ -1192,7 +1207,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   roastCardTitle: { fontSize: 11, letterSpacing: 2 },
-  roastText: { fontSize: 17, lineHeight: 26, marginBottom: 16 },
+  roastText: { fontSize: 22, lineHeight: 32, marginBottom: 16 },
   shareBtn: {
     width: 30,
     height: 30,

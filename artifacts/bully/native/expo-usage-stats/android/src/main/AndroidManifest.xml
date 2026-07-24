@@ -3,23 +3,56 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Declares the Usage Access special permission so:
-        1. Bully appears in Settings → Apps → Special App Access → Usage Access
-        2. UsageStatsManager.queryAndAggregateUsageStats() returns real data
-      Without this declaration the system blocks usage stat queries entirely,
-      even after the user enables the toggle manually.
+      Usage Access: lets UsageStatsManager return real app-usage data.
+      Appears in Settings → Apps → Special App Access → Usage Access.
     -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
     <!--
-      Android 11+ (API 30) restricts PackageManager.getApplicationInfo() to
-      packages explicitly visible to the app. This allows resolving human-readable
-      app names for any package returned by UsageStatsManager.
+      Needed to resolve human-readable app names via PackageManager on Android 11+.
     -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+
+    <!--
+      SYSTEM_ALERT_WINDOW: lets the app draw a WindowManager overlay on top of
+      other apps (TYPE_APPLICATION_OVERLAY). Required for the roast overlay.
+      Users grant this via Settings → Apps → Special App Access → Display over other apps.
+    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!--
+      FOREGROUND_SERVICE: required to start a foreground service on Android 9+.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!--
+      FOREGROUND_SERVICE_SPECIAL_USE: required on Android 14+ for services that
+      declare foregroundServiceType="specialUse".
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application>
+        <!--
+          OverlayService: long-running foreground service that polls
+          UsageStatsManager and shows a WindowManager overlay when a
+          monitored app is detected in the foreground.
+          exported=false — only this app can start it.
+          foregroundServiceType="specialUse" satisfies Android 14's requirement
+          that all foreground services declare an explicit type.
+        -->
+        <service
+            android:name="expo.modules.usagestats.OverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Monitors foreground app usage to display accountability roasts when distraction apps are opened" />
+        </service>
+    </application>
 
 </manifest>
