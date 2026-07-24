@@ -1190,6 +1190,19 @@ export default function SettingsScreen() {
             onGrant={handleGrantUsageAccess}
             onRetry={handleRetryPermission}
           />
+          <Text
+            style={{
+              fontSize: 10,
+              color: colors.mutedForeground,
+              textAlign: "center",
+              marginTop: 2,
+              marginBottom: 6,
+              fontFamily: "Inter_400Regular",
+              opacity: 0.6,
+            }}
+          >
+            {`mod:${isNativeModuleLoaded() ? "ok" : "null"} perm:${usageGranted ? "y" : "n"} apps:${topApps.length}`}
+          </Text>
         </>
       )}
 
