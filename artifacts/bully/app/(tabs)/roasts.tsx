@@ -76,6 +76,7 @@ export default function RoastsScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [isOffline, setIsOffline] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   // ── Modal state ────────────────────────────────────────────────────────────
   const [modalVisible, setModalVisible] = useState(false);
@@ -123,8 +124,10 @@ export default function RoastsScreen() {
           Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
         ]).start();
       },
-      onError: () => {
+      onError: (err: unknown) => {
         setIsOffline(true);
+        const msg = err instanceof Error ? err.message : String(err);
+        setLastError(msg);
         const fallback = FALLBACK_ROASTS[Math.floor(Math.random() * FALLBACK_ROASTS.length)];
         setCurrentRoast(fallback);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -464,6 +467,18 @@ export default function RoastsScreen() {
             </Text>
           </Pressable>
         </Animated.View>
+
+        {/* Debug: show API URL + last error */}
+        <View style={{ backgroundColor: "#111", borderRadius: 8, padding: 10, marginBottom: 12 }}>
+          <Text style={{ color: "#0f0", fontSize: 10, fontFamily: "Inter_400Regular" }}>
+            URL: {`https://${process.env.EXPO_PUBLIC_DOMAIN ?? "UNDEFINED"}/api/roast`}
+          </Text>
+          {lastError && (
+            <Text style={{ color: "#f55", fontSize: 10, fontFamily: "Inter_400Regular", marginTop: 4 }}>
+              ERR: {lastError}
+            </Text>
+          )}
+        </View>
 
         {/* Result card (shows below after dismissing modal) */}
         {currentRoast && (
