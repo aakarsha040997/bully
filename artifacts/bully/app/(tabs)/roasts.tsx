@@ -75,8 +75,9 @@ export default function RoastsScreen() {
   const [currentRoast, setCurrentRoast] = useState<string | null>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
   const [isOffline, setIsOffline] = useState(false);
+
+  // ── Modal state ────────────────────────────────────────────────────────────
   const [modalVisible, setModalVisible] = useState(false);
   const [modalRoast, setModalRoast] = useState("");
   const [modalOffline, setModalOffline] = useState(false);
@@ -103,6 +104,12 @@ export default function RoastsScreen() {
     }).start(() => setModalVisible(false));
   };
 
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Share.share({ message: `Bully just roasted me:\n\n"${modalRoast}"` }).catch(() => {});
+  };
+
+  // ── API call ───────────────────────────────────────────────────────────────
   const { mutate: getRoast, isPending } = useGenerateRoast({
     mutation: {
       onSuccess: (data) => {
@@ -162,292 +169,339 @@ export default function RoastsScreen() {
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const selectedCount = selectedActivities.length;
 
-  const handleShare = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await Share.share({ message: `Bully just roasted me:\n\n"${modalRoast}"` }).catch(() => {});
-  };
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <>
-    {/* ── Roast Popup Modal ── */}
-    <Modal
-      visible={modalVisible}
-      transparent
-      statusBarTranslucent
-      animationType="none"
-      onRequestClose={hideModal}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={hideModal}>
-        <Animated.View
-          style={[
-            styles.modalCard,
-            { backgroundColor: colors.card, transform: [{ translateY: slideAnim }] },
-          ]}
-          onStartShouldSetResponder={() => true}
-        >
-          {/* Icon badge */}
-          <View style={[styles.modalIconBadge, { backgroundColor: modalOffline ? colors.secondary : colors.primary + "20" }]}>
-            <MaterialCommunityIcons
-              name={modalOffline ? "wifi-off" : "fire"}
-              size={32}
-              color={modalOffline ? colors.mutedForeground : colors.primary}
-            />
-          </View>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
 
-          {/* Label */}
-          <Text style={[styles.modalLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-            {modalOffline ? "OFFLINE ROAST" : "YOUR ROAST IS READY"}
-          </Text>
+      {/* Roast popup modal — slides up from the bottom */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        statusBarTranslucent
+        animationType="none"
+        onRequestClose={hideModal}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={hideModal}>
+          <Animated.View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.card,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {/* Tap inside card without closing */}
+            <Pressable onPress={() => {}} style={{ alignItems: "center", gap: 12, width: "100%" }}>
 
-          {/* Roast text */}
-          <Text style={[styles.modalRoastText, { color: modalOffline ? colors.mutedForeground : colors.foreground, fontFamily: "Inter_500Medium" }]}>
-            "{modalRoast}"
-          </Text>
-
-          {/* Actions */}
-          <View style={styles.modalActions}>
-            {!modalOffline && (
-              <Pressable
-                onPress={() => { hideModal(); setTimeout(handleShare, 300); }}
-                style={({ pressed }) => [styles.modalShareBtn, { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }]}
+              {/* Icon badge */}
+              <View
+                style={[
+                  styles.modalIconBadge,
+                  { backgroundColor: modalOffline ? colors.secondary : colors.primary + "20" },
+                ]}
               >
-                <MaterialCommunityIcons name="share-variant" size={18} color={colors.mutedForeground} />
+                <MaterialCommunityIcons
+                  name={modalOffline ? "wifi-off" : "fire"}
+                  size={32}
+                  color={modalOffline ? colors.mutedForeground : colors.primary}
+                />
+              </View>
+
+              {/* Label */}
+              <Text
+                style={[
+                  styles.modalLabel,
+                  { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" },
+                ]}
+              >
+                {modalOffline ? "OFFLINE ROAST" : "YOUR ROAST IS READY"}
+              </Text>
+
+              {/* Roast text */}
+              <Text
+                style={[
+                  styles.modalRoastText,
+                  {
+                    color: modalOffline ? colors.mutedForeground : colors.foreground,
+                    fontFamily: "Inter_500Medium",
+                  },
+                ]}
+              >
+                {"\u201C"}{modalRoast}{"\u201D"}
+              </Text>
+
+              {/* Action row */}
+              <View style={styles.modalActions}>
+                {!modalOffline && (
+                  <Pressable
+                    onPress={() => { hideModal(); setTimeout(handleShare, 300); }}
+                    style={({ pressed }) => [
+                      styles.modalShareBtn,
+                      { borderColor: colors.border, opacity: pressed ? 0.6 : 1 },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="share-variant" size={18} color={colors.mutedForeground} />
+                  </Pressable>
+                )}
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    hideModal();
+                  }}
+                  style={({ pressed }) => [
+                    styles.modalDismissBtn,
+                    {
+                      backgroundColor: modalOffline ? colors.secondary : colors.primary,
+                      opacity: pressed ? 0.85 : 1,
+                      flex: 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.modalDismissText,
+                      {
+                        fontFamily: "Inter_700Bold",
+                        color: modalOffline ? colors.foreground : "#fff",
+                      },
+                    ]}
+                  >
+                    {modalOffline ? "Close" : "Got it. I'll do better."}
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </Modal>
+
+      {/* Main scroll content */}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: topInset + 16, paddingBottom: insets.bottom + 100 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.title, { color: colors.foreground, fontFamily: "Inter_700Bold" }]}>
+          GET ROASTED
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+          Pick your crimes. Face the consequences.
+        </Text>
+
+        {/* Roast Level */}
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+          ROAST LEVEL
+        </Text>
+        <View style={styles.levelsRow}>
+          {ROAST_LEVELS.map(({ level, label, desc }) => {
+            const active = selectedLevel === level;
+            return (
+              <Pressable
+                key={level}
+                onPress={() => {
+                  setSelectedLevel(level);
+                  Haptics.selectionAsync();
+                }}
+                style={[
+                  styles.levelCard,
+                  {
+                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor: active ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.levelNum, { color: active ? "#fff" : colors.mutedForeground, fontFamily: "Inter_700Bold" }]}>
+                  {level}
+                </Text>
+                <Text style={[styles.levelLabel, { color: active ? "#fff" : colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
+                  {label}
+                </Text>
+                <Text style={[styles.levelDesc, { color: active ? "rgba(255,255,255,0.7)" : colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                  {desc}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Your Crimes */}
+        <View style={styles.crimesHeader}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+            YOUR CRIMES
+          </Text>
+          <View style={styles.crimesBadgeRow}>
+            {selectedCount > 0 && (
+              <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.countBadgeText, { fontFamily: "Inter_700Bold" }]}>
+                  {selectedCount}
+                </Text>
+              </View>
+            )}
+            <Text style={[styles.crimesSub, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+              {selectedCount === 0 ? "tap to select" : "selected"}
+            </Text>
+            {selectedCount > 0 && (
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSelectedActivities([]);
+                }}
+              >
+                <Text style={[styles.clearText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>
+                  clear
+                </Text>
               </Pressable>
             )}
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); hideModal(); }}
-              style={({ pressed }) => [
-                styles.modalDismissBtn,
-                { backgroundColor: modalOffline ? colors.secondary : colors.primary, opacity: pressed ? 0.85 : 1, flex: 1 },
-              ]}
-            >
-              <Text style={[styles.modalDismissText, { fontFamily: "Inter_700Bold", color: modalOffline ? colors.foreground : "#fff" }]}>
-                {modalOffline ? "Close" : "Got it. I'll do better."}
-              </Text>
-            </Pressable>
           </View>
-        </Animated.View>
-      </Pressable>
-    </Modal>
+        </View>
 
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: topInset + 16, paddingBottom: insets.bottom + 100 },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={[styles.title, { color: colors.foreground, fontFamily: "Inter_700Bold" }]}>
-        GET ROASTED
-      </Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-        Pick your crimes. Face the consequences.
-      </Text>
+        <View style={styles.activitiesGrid}>
+          {ACTIVITIES.map(({ key, icon }) => {
+            const active = selectedActivities.includes(key);
+            return (
+              <Pressable
+                key={key}
+                onPress={() => toggleActivity(key)}
+                style={({ pressed }) => [
+                  styles.activityChip,
+                  {
+                    backgroundColor: active ? colors.primary + "20" : colors.card,
+                    borderColor: active ? colors.primary : colors.border,
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={icon as any}
+                  size={16}
+                  color={active ? colors.primary : colors.mutedForeground}
+                />
+                <Text style={[styles.activityLabel, { color: active ? colors.primary : colors.foreground, fontFamily: "Inter_500Medium" }]}>
+                  {key}
+                </Text>
+                {active && (
+                  <MaterialCommunityIcons name="check-circle" size={14} color={colors.primary} />
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
 
-      {/* ── Roast Level ── */}
-      <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-        ROAST LEVEL
-      </Text>
-      <View style={styles.levelsRow}>
-        {ROAST_LEVELS.map(({ level, label, desc }) => {
-          const active = selectedLevel === level;
-          return (
-            <Pressable
-              key={level}
-              onPress={() => {
-                setSelectedLevel(level);
-                Haptics.selectionAsync();
-              }}
-              style={[
-                styles.levelCard,
-                {
-                  backgroundColor: active ? colors.primary : colors.card,
-                  borderColor: active ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text style={[styles.levelNum, { color: active ? "#fff" : colors.mutedForeground, fontFamily: "Inter_700Bold" }]}>
-                {level}
-              </Text>
-              <Text style={[styles.levelLabel, { color: active ? "#fff" : colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
-                {label}
-              </Text>
-              <Text style={[styles.levelDesc, { color: active ? "rgba(255,255,255,0.7)" : colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-                {desc}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* ── Your Crimes ── */}
-      <View style={styles.crimesHeader}>
+        {/* Duration */}
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-          YOUR CRIMES
+          FOR HOW LONG
         </Text>
-        <View style={styles.crimesBadgeRow}>
-          {selectedCount > 0 && (
-            <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.countBadgeText, { fontFamily: "Inter_700Bold" }]}>
-                {selectedCount}
-              </Text>
-            </View>
-          )}
-          <Text style={[styles.crimesSub, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-            {selectedCount === 0
-              ? "tap to select"
-              : selectedCount === 1
-              ? "selected"
-              : "selected"}
-          </Text>
-          {selectedCount > 0 && (
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync();
-                setSelectedActivities([]);
-              }}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contextScroll}>
+          {DURATIONS.map((dur) => {
+            const active = selectedDuration === dur;
+            return (
+              <Pressable
+                key={dur}
+                onPress={() => {
+                  setSelectedDuration(dur);
+                  Haptics.selectionAsync();
+                }}
+                style={[
+                  styles.contextChip,
+                  {
+                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor: active ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.contextLabel, { color: active ? "#fff" : colors.foreground, fontFamily: "Inter_500Medium" }]}>
+                  {dur}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* Context preview */}
+        {selectedCount > 1 && (
+          <View style={[styles.previewPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <MaterialCommunityIcons name="eye-outline" size={14} color={colors.mutedForeground} />
+            <Text
+              style={[styles.previewText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}
+              numberOfLines={2}
             >
-              <Text style={[styles.clearText, { color: colors.primary, fontFamily: "Inter_500Medium" }]}>
-                clear
-              </Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.activitiesGrid}>
-        {ACTIVITIES.map(({ key, icon }) => {
-          const active = selectedActivities.includes(key);
-          return (
-            <Pressable
-              key={key}
-              onPress={() => toggleActivity(key)}
-              style={({ pressed }) => [
-                styles.activityChip,
-                {
-                  backgroundColor: active ? colors.primary + "20" : colors.card,
-                  borderColor: active ? colors.primary : colors.border,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={icon as any}
-                size={16}
-                color={active ? colors.primary : colors.mutedForeground}
-              />
-              <Text style={[styles.activityLabel, { color: active ? colors.primary : colors.foreground, fontFamily: "Inter_500Medium" }]}>
-                {key}
-              </Text>
-              {active && (
-                <MaterialCommunityIcons name="check-circle" size={14} color={colors.primary} />
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* ── Duration ── */}
-      <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
-        FOR HOW LONG
-      </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contextScroll}>
-        {DURATIONS.map((dur) => {
-          const active = selectedDuration === dur;
-          return (
-            <Pressable
-              key={dur}
-              onPress={() => {
-                setSelectedDuration(dur);
-                Haptics.selectionAsync();
-              }}
-              style={[
-                styles.contextChip,
-                {
-                  backgroundColor: active ? colors.primary : colors.card,
-                  borderColor: active ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text style={[styles.contextLabel, { color: active ? "#fff" : colors.foreground, fontFamily: "Inter_500Medium" }]}>
-                {dur}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* ── Roast preview ── */}
-      {selectedCount > 1 && (
-        <View style={[styles.previewPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <MaterialCommunityIcons name="eye-outline" size={14} color={colors.mutedForeground} />
-          <Text style={[styles.previewText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]} numberOfLines={2}>
-            "{buildContext(selectedActivities, selectedDuration)}"
-          </Text>
-        </View>
-      )}
-
-      {/* ── CTA ── */}
-      <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-        <Pressable
-          onPress={handleRoastMe}
-          disabled={isPending || selectedCount === 0}
-          style={({ pressed }) => [
-            styles.roastBtn,
-            {
-              backgroundColor:
-                selectedCount === 0
-                  ? colors.secondary
-                  : isPending
-                  ? colors.primary + "80"
-                  : colors.primary,
-              opacity: pressed ? 0.9 : 1,
-            },
-          ]}
-        >
-          <MaterialCommunityIcons name="lightning-bolt" size={22} color="#fff" />
-          <Text style={[styles.roastBtnText, { fontFamily: "Inter_700Bold" }]}>
-            {isPending
-              ? "GENERATING..."
-              : selectedCount === 0
-              ? "SELECT A CRIME"
-              : selectedCount === 1
-              ? "ROAST ME"
-              : `ROAST ALL ${selectedCount}`}
-          </Text>
-        </Pressable>
-      </Animated.View>
-
-      {/* ── Result ── */}
-      {currentRoast && (
-        <Animated.View
-          style={[
-            styles.roastOutput,
-            {
-              backgroundColor: colors.card,
-              borderColor: isOffline ? colors.border : colors.primary + "50",
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={isOffline ? "wifi-off" : "fire"}
-            size={20}
-            color={isOffline ? colors.mutedForeground : colors.primary}
-          />
-          <Text style={[styles.roastOutputText, { color: isOffline ? colors.mutedForeground : colors.foreground, fontFamily: "Inter_500Medium" }]}>
-            "{currentRoast}"
-          </Text>
-          {isOffline && (
-            <Text style={[styles.offlineLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-              offline — local roast
+              {"\u201C"}{buildContext(selectedActivities, selectedDuration)}{"\u201D"}
             </Text>
-          )}
+          </View>
+        )}
+
+        {/* CTA button */}
+        <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
+          <Pressable
+            onPress={handleRoastMe}
+            disabled={isPending || selectedCount === 0}
+            style={({ pressed }) => [
+              styles.roastBtn,
+              {
+                backgroundColor:
+                  selectedCount === 0
+                    ? colors.secondary
+                    : isPending
+                    ? colors.primary + "80"
+                    : colors.primary,
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons name="lightning-bolt" size={22} color="#fff" />
+            <Text style={[styles.roastBtnText, { fontFamily: "Inter_700Bold" }]}>
+              {isPending
+                ? "GENERATING..."
+                : selectedCount === 0
+                ? "SELECT A CRIME"
+                : selectedCount === 1
+                ? "ROAST ME"
+                : `ROAST ALL ${selectedCount}`}
+            </Text>
+          </Pressable>
         </Animated.View>
-      )}
-    </ScrollView>
-    </>
+
+        {/* Result card (shows below after dismissing modal) */}
+        {currentRoast && (
+          <Animated.View
+            style={[
+              styles.roastOutput,
+              {
+                backgroundColor: colors.card,
+                borderColor: isOffline ? colors.border : colors.primary + "50",
+                opacity: fadeAnim,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={isOffline ? "wifi-off" : "fire"}
+              size={20}
+              color={isOffline ? colors.mutedForeground : colors.primary}
+            />
+            <Text
+              style={[
+                styles.roastOutputText,
+                {
+                  color: isOffline ? colors.mutedForeground : colors.foreground,
+                  fontFamily: "Inter_500Medium",
+                },
+              ]}
+            >
+              {"\u201C"}{currentRoast}{"\u201D"}
+            </Text>
+            {isOffline && (
+              <Text style={[styles.offlineLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+                offline — local roast
+              </Text>
+            )}
+          </Animated.View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -548,8 +602,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 36,
-    alignItems: "center",
-    gap: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.25,
@@ -575,7 +627,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 8,
-    alignSelf: "stretch",
+    width: "100%",
   },
   modalShareBtn: {
     width: 50,
