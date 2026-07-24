@@ -1,0 +1,44 @@
+Running "expo doctor"
+Running 18 checks on your project...
+14/18 checks passed. 4 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+✖ Check dependencies for packages that should not be installed directly
+The package "@expo/config-plugins" should not be installed directly in your project. You should instead use "expo/config-plugins" which is a sub-export of the expo package.
+If you installed "@expo/config-plugins" to fulfill a peer dependency for a config plugin, the plugin's maintainer should switch to the "expo/config-plugins" import, and you can ignore this warning.
+Advice:
+Remove these packages from your package.json.
+
+✖ Check that required peer dependencies are installed
+Missing peer dependency: expo-modules-core
+Required by: expo-usage-stats
+Advice:
+Install missing required peer dependency with "npx expo install expo-modules-core"
+Your app may crash outside of Expo Go without this dependency. Native module peer dependencies must be installed directly.
+✖ Check that no duplicate dependencies are installed
+Your project contains duplicate native module dependencies, which should be de-duplicated.
+Native builds may only contain one version of any given native module, and having multiple versions of a single Native module installed may lead to unexpected build errors.
+Found duplicates for expo-usage-stats:
+  ├─ expo-usage-stats@1.0.0 (at: modules/expo-usage-stats)
+  └─ expo-usage-stats@1.0.0 (at: node_modules/expo-usage-stats)
+Advice:
+Your node_modules folder may be corrupted. Multiple copies of the same version exist for: expo-usage-stats.
+- Try deleting your node_modules folders and reinstall your dependencies after.
+- If this error persists, delete your node_modules as well as your lockfile and reinstall.
+Resolve your dependency issues and deduplicate your dependencies. Learn more: https://expo.fyi/resolving-dependency-issues
+
+✖ Check that packages match versions required by installed Expo SDK
+
+🔧 Patch version mismatches
+package  expected  found    
+expo     ~54.0.36  54.0.35  
+
+
+
+1 package out of date.
+Advice:
+Use 'npx expo install --check' to review and upgrade your dependencies.
+To ignore specific packages, add them to "expo.install.exclude" in package.json. Learn more: https://expo.fyi/dependency-validation
+4 checks failed, indicating possible issues with the project.
+Command "expo doctor" failed.
+npx -y expo-doctor exited with non-zero code: 1
