@@ -4,9 +4,11 @@ import * as Haptics from "expo-haptics";
 import React, { useRef, useState } from "react";
 import {
   Animated,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -75,6 +77,31 @@ export default function RoastsScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [isOffline, setIsOffline] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalRoast, setModalRoast] = useState("");
+  const [modalOffline, setModalOffline] = useState(false);
+  const slideAnim = useRef(new Animated.Value(600)).current;
+
+  const showModal = (text: string, offline = false) => {
+    setModalRoast(text);
+    setModalOffline(offline);
+    setModalVisible(true);
+    slideAnim.setValue(600);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const hideModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: 600,
+      duration: 260,
+      useNativeDriver: true,
+    }).start(() => setModalVisible(false));
+  };
 
   const { mutate: getRoast, isPending } = useGenerateRoast({
     mutation: {
@@ -83,6 +110,7 @@ export default function RoastsScreen() {
         setCurrentRoast(data.roast);
         setTodaysRoast(data.roast);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        showModal(data.roast, false);
         Animated.sequence([
           Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
           Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -93,6 +121,7 @@ export default function RoastsScreen() {
         const fallback = FALLBACK_ROASTS[Math.floor(Math.random() * FALLBACK_ROASTS.length)];
         setCurrentRoast(fallback);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showModal(fallback, true);
         Animated.sequence([
           Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
           Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -133,7 +162,74 @@ export default function RoastsScreen() {
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const selectedCount = selectedActivities.length;
 
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Share.share({ message: `Bully just roasted me:\n\n"${modalRoast}"` }).catch(() => {});
+  };
+
   return (
+    <>
+    {/* ── Roast Popup Modal ── */}
+    <Modal
+      visible={modalVisible}
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={hideModal}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={hideModal}>
+        <Animated.View
+          style={[
+            styles.modalCard,
+            { backgroundColor: colors.card, transform: [{ translateY: slideAnim }] },
+          ]}
+          onStartShouldSetResponder={() => true}
+        >
+          {/* Icon badge */}
+          <View style={[styles.modalIconBadge, { backgroundColor: modalOffline ? colors.secondary : colors.primary + "20" }]}>
+            <MaterialCommunityIcons
+              name={modalOffline ? "wifi-off" : "fire"}
+              size={32}
+              color={modalOffline ? colors.mutedForeground : colors.primary}
+            />
+          </View>
+
+          {/* Label */}
+          <Text style={[styles.modalLabel, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+            {modalOffline ? "OFFLINE ROAST" : "YOUR ROAST IS READY"}
+          </Text>
+
+          {/* Roast text */}
+          <Text style={[styles.modalRoastText, { color: modalOffline ? colors.mutedForeground : colors.foreground, fontFamily: "Inter_500Medium" }]}>
+            "{modalRoast}"
+          </Text>
+
+          {/* Actions */}
+          <View style={styles.modalActions}>
+            {!modalOffline && (
+              <Pressable
+                onPress={() => { hideModal(); setTimeout(handleShare, 300); }}
+                style={({ pressed }) => [styles.modalShareBtn, { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }]}
+              >
+                <MaterialCommunityIcons name="share-variant" size={18} color={colors.mutedForeground} />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); hideModal(); }}
+              style={({ pressed }) => [
+                styles.modalDismissBtn,
+                { backgroundColor: modalOffline ? colors.secondary : colors.primary, opacity: pressed ? 0.85 : 1, flex: 1 },
+              ]}
+            >
+              <Text style={[styles.modalDismissText, { fontFamily: "Inter_700Bold", color: modalOffline ? colors.foreground : "#fff" }]}>
+                {modalOffline ? "Close" : "Got it. I'll do better."}
+              </Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </Pressable>
+    </Modal>
+
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[
@@ -351,6 +447,7 @@ export default function RoastsScreen() {
         </Animated.View>
       )}
     </ScrollView>
+    </>
   );
 }
 
@@ -438,4 +535,62 @@ const styles = StyleSheet.create({
   },
   roastOutputText: { fontSize: 18, lineHeight: 28, textAlign: "center" },
   offlineLabel: { fontSize: 11, letterSpacing: 1 },
+
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 36,
+    alignItems: "center",
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 24,
+  },
+  modalIconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  modalLabel: { fontSize: 10, letterSpacing: 2.5 },
+  modalRoastText: {
+    fontSize: 20,
+    lineHeight: 30,
+    textAlign: "center",
+    marginVertical: 8,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+    alignSelf: "stretch",
+  },
+  modalShareBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalDismissBtn: {
+    height: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  modalDismissText: { fontSize: 15 },
 });
