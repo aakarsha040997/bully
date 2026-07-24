@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { NativeModules, Platform } from "react-native";
 
 export interface AppUsage {
   packageName: string;
@@ -6,22 +6,16 @@ export interface AppUsage {
   totalMinutes: number;
 }
 
-// The Kotlin module uses the new Expo Modules system (ModuleDefinition).
-// New-style modules are NOT exposed via NativeModules — they must be accessed
-// via requireNativeModule() from expo-modules-core.
+// Legacy React Native module registered via ReactPackage in MainApplication.
+// Accessible through NativeModules (works with new architecture interop layer).
 let ExpoUsageStats: {
   hasPermission: () => Promise<boolean>;
-  requestPermission: () => Promise<void>;
+  requestPermission: () => Promise<boolean>;
   getUsageStats: () => Promise<AppUsage[]>;
 } | null = null;
 
 if (Platform.OS === "android") {
-  try {
-    const { requireNativeModule } = require("expo-modules-core");
-    ExpoUsageStats = requireNativeModule("ExpoUsageStats");
-  } catch {
-    ExpoUsageStats = null;
-  }
+  ExpoUsageStats = (NativeModules as Record<string, unknown>).ExpoUsageStats as typeof ExpoUsageStats ?? null;
 }
 
 /** True if the native ExpoUsageStats module was successfully loaded. */

@@ -1,0 +1,79 @@
+I need you to thoroughly debug the Android Usage Access implementation instead of making speculative fixes.
+
+The app is supposed to track screen time and app usage, but it is not working even after several attempts.
+
+Please perform ALL of the following checks:
+
+1. Verify AndroidManifest.xml
+
+* Confirm `android.permission.PACKAGE_USAGE_STATS` is declared correctly.
+* Check for any missing permissions related to foreground services (if used).
+* Verify there are no manifest merge issues.
+
+2. Verify Usage Access permission
+
+* Ensure the app correctly detects whether Usage Access has been granted using `AppOpsManager`.
+* Do NOT rely on normal runtime permission APIs.
+* Log the permission status to Logcat.
+
+3. Verify the settings flow
+
+* Ensure the app opens `Settings.ACTION_USAGE_ACCESS_SETTINGS`.
+* After returning from Settings, verify the permission is checked again.
+* Confirm the app handles the user denying permission.
+
+4. Verify UsageStatsManager
+
+* Check that `UsageStatsManager` is initialized correctly.
+* Query the last 24 hours of data (not just a few seconds).
+* Log:
+
+  * number of apps returned
+  * first few package names
+  * total foreground time for each
+
+5. Verify event querying
+
+* If the app relies on current foreground app detection, verify `queryEvents()` is being used correctly instead of only `queryUsageStats()`.
+* Log every event being received.
+
+6. Verify device compatibility
+
+* Detect whether the device/manufacturer has known restrictions.
+* Log Android version, manufacturer, and model.
+
+7. Add detailed logging
+   At every important step, log:
+
+* Is Usage Access granted?
+* Was UsageStatsManager obtained?
+* Query start time
+* Query end time
+* Number of UsageStats returned
+* Number of UsageEvents returned
+* Any exceptions with full stack traces
+
+8. Inspect the codebase
+   Search the entire project for:
+
+* UsageStatsManager
+* AppOpsManager
+* queryUsageStats
+* queryEvents
+* PACKAGE_USAGE_STATS
+* ACTION_USAGE_ACCESS_SETTINGS
+
+Report every file that uses these APIs.
+
+9. Produce a debugging report
+   Instead of immediately changing code, first provide:
+
+* Every issue found
+* Why it is a problem
+* The exact file and line number
+* The proposed fix
+
+10. After the report
+    Apply only the necessary fixes, explain each change, and show the final diff.
+
+Do not assume the bug. Verify each step with logs before making changes.
