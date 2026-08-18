@@ -1251,26 +1251,51 @@ export default function SettingsScreen() {
       {Platform.OS === "android" && (
         <>
           <SectionHeader title="ANDROID TRACKING" />
-          <UsageAccessCard
-            granted={usageGranted}
-            checking={checkingPermission}
-            topApps={topApps}
-            onGrant={handleGrantUsageAccess}
-            onRetry={handleRetryPermission}
-          />
-          <Text
-            style={{
-              fontSize: 10,
-              color: colors.mutedForeground,
-              textAlign: "center",
-              marginTop: 2,
-              marginBottom: 6,
-              fontFamily: "Inter_400Regular",
-              opacity: 0.6,
-            }}
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.card, borderColor: usageGranted ? "#00E67640" : colors.border },
+            ]}
           >
-            {`mod:${isNativeModuleLoaded() ? "ok" : "null"} perm:${usageGranted ? "y" : "n"} apps:${topApps.length}`}
-          </Text>
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+              <MaterialCommunityIcons
+                name={usageGranted ? "check-circle" : "cellphone-lock"}
+                size={22}
+                color={usageGranted ? "#00E676" : colors.primary}
+                style={{ marginTop: 1 }}
+              />
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                  Usage Access {usageGranted ? "Enabled" : "Required"}
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 }}>
+                  {usageGranted
+                    ? "Bully is automatically tracking your screen time. No manual logging needed."
+                    : "Enable Usage Access so Bully can automatically track your screen time — no manual input needed."}
+                </Text>
+              </View>
+            </View>
+            {!usageGranted && (
+              <Pressable
+                onPress={handleGrantUsageAccess}
+                style={({ pressed }) => [{
+                  flexDirection: "row" as const,
+                  alignItems: "center" as const,
+                  justifyContent: "center" as const,
+                  gap: 8,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  marginTop: 4,
+                  backgroundColor: pressed ? colors.primary + "CC" : colors.primary,
+                }]}
+              >
+                <MaterialCommunityIcons name="shield-lock-open" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                  Grant Access
+                </Text>
+              </Pressable>
+            )}
+          </View>
         </>
       )}
 

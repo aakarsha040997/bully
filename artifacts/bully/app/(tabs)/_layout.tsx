@@ -20,10 +20,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: "bolt", selected: "bolt.fill" }} />
         <Label>Roasts</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="streaks">
-        <Icon sf={{ default: "flame", selected: "flame.fill" }} />
-        <Label>Streaks</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="report">
         <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
         <Label>Report</Label>
@@ -96,18 +92,7 @@ function ClassicTabLayout() {
             ),
         }}
       />
-      <Tabs.Screen
-        name="streaks"
-        options={{
-          title: "Streaks",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="flame.fill" tintColor={color} size={22} />
-            ) : (
-              <MaterialCommunityIcons name="fire" size={24} color={color} />
-            ),
-        }}
-      />
+      <Tabs.Screen name="streaks" options={{ href: null }} />
       <Tabs.Screen
         name="report"
         options={{

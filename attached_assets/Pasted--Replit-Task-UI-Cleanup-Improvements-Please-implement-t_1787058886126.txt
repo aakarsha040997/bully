@@ -1,0 +1,78 @@
+# Replit Task — UI Cleanup & Improvements
+
+Please implement the following changes **within the remaining Replit credits/budget of $3.27**. Prioritize the requested UI/UX changes, avoid unnecessary refactoring, and do not add features that significantly increase usage or cost.
+
+## Required Changes
+
+### 1. Roast Page
+
+* Remove the URL from the Roast page.
+* Keep the page clean and focused on the actual roast/content.
+
+### 2. Streaks / Navigation
+
+* Remove the **Streaks** tab if it is unnecessary.
+* Revisit the **Achievements** section:
+
+  * Either remove it completely, **or**
+  * Replace it with something more useful and engaging, such as **Coupons / Rewards**.
+* Prefer the option that makes the app feel more useful without adding unnecessary complexity.
+
+### 3. Productivity Score
+
+* Change the Productivity Score visualization to a **donut chart**.
+* Make it visually clear and consistent with the rest of the dashboard.
+
+### 4. Screen Time
+
+* Change Screen Time to a **donut-style visualization with app breakdown**.
+* Clearly show how screen time is distributed across apps.
+* Keep the visualization simple and easy to understand.
+
+### 5. Settings
+
+* Remove the **Android Tracking** tab/section.
+* Instead, show a simple message explaining that Android tracking needs to be enabled/configured, rather than displaying a full settings tab for it.
+
+### 6. Remove Unnecessary UI
+
+* Go through the app and remove unnecessary/redundant elements.
+* Keep the interface minimal, clean, and focused on the core functionality.
+* Do not remove anything important to the app's functionality.
+
+### 7. Home Page — Log Today
+
+In the **Log Today** section:
+
+* Remove **Screen Time**, since it is automatically tracked.
+* Remove **Shorts**.
+* Remove the wording **"Auto Tracked"** wherever it appears in this area or where it is unnecessary.
+* The user should only be asked to manually log things that actually require manual input.
+
+### 8. Distraction
+
+* Make the **Distraction** section full width.
+* It should use the available horizontal space rather than appearing as a narrow card/section.
+
+## Design Expectations
+
+* Maintain the existing visual style and branding.
+* Make the UI feel polished rather than simply deleting components.
+* Ensure spacing, alignment, typography, colors, and responsive behavior remain consistent.
+* Avoid introducing unnecessary animations or heavy components.
+* Make sure the changes work on both desktop and mobile layouts.
+
+## Important Constraint
+
+**Use only the remaining $3.27 of Replit credits.**
+
+Please:
+
+1. Inspect the existing implementation first.
+2. Make the smallest set of changes necessary to accomplish the above.
+3. Reuse existing components/styles wherever possible.
+4. Avoid unnecessary dependency installations or large architectural changes.
+5. Test the affected pages/components after making the changes.
+6. Do not spend credits on unrelated improvements.
+
+At the end, briefly summarize what was changed and confirm that the requested cleanup was completed without unnecessary changes.

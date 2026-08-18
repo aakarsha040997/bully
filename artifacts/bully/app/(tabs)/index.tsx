@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Svg, { Circle } from "react-native-svg";
 import { useGenerateDailyReport } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
@@ -23,6 +24,7 @@ import {
   hasUsagePermission,
   getTotalScreenMinutes,
   getTopApp,
+  getAppUsageStats,
   updateOverlayRoast,
   type AppUsage,
 } from "@/services/usageStats";
@@ -68,7 +70,7 @@ function PersonalityBadge({ personality }: { personality: Personality }) {
   );
 }
 
-// ─── Score Ring ─────────────────────────────────────────────────────────────────
+// ─── Score Donut ─────────────────────────────────────────────────────────────────
 
 function ScoreRing({
   score,
@@ -82,92 +84,79 @@ function ScoreRing({
   weeklyAvg: number;
 }) {
   const colors = useColors();
-  const animVal = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(animVal, {
-      toValue: score,
-      duration: 1200,
-      useNativeDriver: false,
-    }).start();
-  }, [score]);
 
   const ringColor =
     score >= 70 ? "#00E676" : score >= 40 ? "#FF9800" : colors.primary;
-
   const trendIcon =
     trend === "up" ? "trending-up" : trend === "down" ? "trending-down" : "trending-neutral";
   const trendColor =
     trend === "up" ? "#00E676" : trend === "down" ? colors.primary : colors.mutedForeground;
 
+  const SIZE = 140;
+  const STROKE = 14;
+  const RADIUS = (SIZE - STROKE) / 2;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const dashOffset = CIRCUMFERENCE * (1 - Math.max(0, Math.min(score, 100)) / 100);
+
   return (
     <View style={styles.scoreContainer}>
       <View style={styles.scoreRow}>
         <View style={{ width: 60 }} />
-        <View style={[styles.scoreRingOuter, { borderColor: ringColor + "33" }]}>
-          <View style={[styles.scoreRingInner, { borderColor: ringColor }]}>
-            <Text
-              style={[styles.scoreNumber, { color: ringColor, fontFamily: "Inter_700Bold" }]}
-            >
-              {score}
-            </Text>
-            <Text
-              style={[
-                styles.scoreLabel,
-                { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-              ]}
-            >
-              / 100
-            </Text>
-          </View>
+        <View style={{ width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
+          <Svg
+            width={SIZE}
+            height={SIZE}
+            style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}
+          >
+            <Circle
+              cx={SIZE / 2}
+              cy={SIZE / 2}
+              r={RADIUS}
+              stroke={ringColor + "22"}
+              strokeWidth={STROKE}
+              fill="none"
+            />
+            <Circle
+              cx={SIZE / 2}
+              cy={SIZE / 2}
+              r={RADIUS}
+              stroke={ringColor}
+              strokeWidth={STROKE}
+              fill="none"
+              strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+            />
+          </Svg>
+          <Text style={[styles.scoreNumber, { color: ringColor, fontFamily: "Inter_700Bold" }]}>
+            {score}
+          </Text>
+          <Text style={[styles.scoreLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+            / 100
+          </Text>
         </View>
         <View style={styles.scoreSideStats}>
           <View style={styles.scoreSideStat}>
-            <Text
-              style={[
-                styles.scoreSideValue,
-                { color: colors.foreground, fontFamily: "Inter_700Bold" },
-              ]}
-            >
+            <Text style={[styles.scoreSideValue, { color: colors.foreground, fontFamily: "Inter_700Bold" }]}>
               {weeklyAvg > 0 ? weeklyAvg : "—"}
             </Text>
-            <Text
-              style={[
-                styles.scoreSideLabel,
-                { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-              ]}
-            >
+            <Text style={[styles.scoreSideLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
               weekly avg
             </Text>
           </View>
           <View style={styles.scoreSideStat}>
             <MaterialCommunityIcons name={trendIcon as any} size={22} color={trendColor} />
-            <Text
-              style={[
-                styles.scoreSideLabel,
-                { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-              ]}
-            >
+            <Text style={[styles.scoreSideLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
               trend
             </Text>
           </View>
         </View>
       </View>
-      <Text
-        style={[
-          styles.scoreTitle,
-          { color: colors.foreground, fontFamily: "Inter_600SemiBold" },
-        ]}
-      >
+      <Text style={[styles.scoreTitle, { color: colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
         Productivity Score
       </Text>
       {reason.length > 0 && (
-        <Text
-          style={[
-            styles.scoreReason,
-            { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-          ]}
-        >
+        <Text style={[styles.scoreReason, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
           {reason}
         </Text>
       )}
@@ -239,25 +228,11 @@ function HighlightsRow({
 
   return (
     <View style={styles.highlightsRow}>
-      {topWin ? (
-        <HighlightCard
-          type="win"
-          label={topWin.label}
-          icon={topWin.icon}
-          points={topWin.points}
-        />
-      ) : (
-        <View style={styles.highlightCardEmpty} />
+      {topWin && (
+        <HighlightCard type="win" label={topWin.label} icon={topWin.icon} points={topWin.points} />
       )}
-      {topDistraction ? (
-        <HighlightCard
-          type="miss"
-          label={topDistraction.label}
-          icon={topDistraction.icon}
-          points={topDistraction.points}
-        />
-      ) : (
-        <View style={styles.highlightCardEmpty} />
+      {topDistraction && (
+        <HighlightCard type="miss" label={topDistraction.label} icon={topDistraction.icon} points={topDistraction.points} />
       )}
     </View>
   );
@@ -693,6 +668,110 @@ function GymToggle({ done, onToggle }: { done: boolean; onToggle: () => void }) 
   );
 }
 
+// ─── Screen Time Card ────────────────────────────────────────────────────────────
+
+function ScreenTimeCard({
+  totalMinutes,
+  dailyLimit,
+  usageApps,
+}: {
+  totalMinutes: number;
+  dailyLimit: number;
+  usageApps: AppUsage[];
+}) {
+  const colors = useColors();
+  const pct = dailyLimit > 0 ? Math.min(totalMinutes / dailyLimit, 1) : 0;
+  const arcColor = pct >= 1 ? colors.primary : pct >= 0.7 ? "#FF9800" : "#00E676";
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  const timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+
+  const SIZE = 88;
+  const STROKE = 10;
+  const RADIUS = (SIZE - STROKE) / 2;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const dashOffset = CIRC * (1 - pct);
+
+  const apps = usageApps.slice(0, 4);
+  const totalAppMins = apps.reduce((s, a) => s + a.totalMinutes, 0) || 1;
+
+  return (
+    <View style={[stStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[stStyles.label, { color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" }]}>
+        SCREEN TIME TODAY
+      </Text>
+      <View style={stStyles.body}>
+        {/* Donut */}
+        <View style={{ width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
+          <Svg
+            width={SIZE}
+            height={SIZE}
+            style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}
+          >
+            <Circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} stroke={arcColor + "22"} strokeWidth={STROKE} fill="none" />
+            {pct > 0 && (
+              <Circle
+                cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
+                stroke={arcColor} strokeWidth={STROKE} fill="none"
+                strokeDasharray={`${CIRC} ${CIRC}`}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="round"
+              />
+            )}
+          </Svg>
+          <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: arcColor }}>{timeStr}</Text>
+          {dailyLimit > 0 && (
+            <Text style={{ fontSize: 9, color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+              {Math.round(pct * 100)}%
+            </Text>
+          )}
+        </View>
+
+        {/* App breakdown */}
+        <View style={{ flex: 1, gap: 8 }}>
+          {apps.length === 0 ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 }}>
+              {Platform.OS === "android"
+                ? "Grant Usage Access in Settings to see app breakdown."
+                : "Auto-tracked on Android."}
+            </Text>
+          ) : (
+            apps.map((app, i) => {
+              const barPct = app.totalMinutes / totalAppMins;
+              return (
+                <View key={app.packageName} style={{ gap: 3 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 }}>
+                      {app.appName}
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11, fontFamily: "Inter_400Regular", marginLeft: 6 }}>
+                      {app.totalMinutes}m
+                    </Text>
+                  </View>
+                  <View style={{ height: 3, backgroundColor: colors.border, borderRadius: 2, overflow: "hidden" }}>
+                    <View style={{
+                      height: 3,
+                      width: `${Math.round(barPct * 100)}%`,
+                      backgroundColor: i === 0 ? colors.primary : colors.mutedForeground + "60",
+                      borderRadius: 2,
+                    }} />
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const stStyles = StyleSheet.create({
+  card: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 12 },
+  label: { fontSize: 11, letterSpacing: 2, marginBottom: 12 },
+  body: { flexDirection: "row", gap: 16, alignItems: "center" },
+});
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
@@ -719,6 +798,7 @@ export default function DashboardScreen() {
   const [screenTimeWarningFired, setScreenTimeWarningFired] = useState(false);
   const [autoTracking, setAutoTracking] = useState(false);
   const [topApp, setTopApp] = useState<AppUsage | null>(null);
+  const [usageApps, setUsageApps] = useState<AppUsage[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const roastCardY = useRef<number>(0);
 
@@ -782,13 +862,15 @@ export default function DashboardScreen() {
         const granted = await hasUsagePermission();
         if (!granted || cancelled) return;
         setAutoTracking(true);
-        const [totalMins, top] = await Promise.all([
+        const [totalMins, top, apps] = await Promise.all([
           getTotalScreenMinutes(),
           getTopApp(),
+          getAppUsageStats(),
         ]);
         if (cancelled) return;
         updateStats({ screenTimeMinutes: totalMins });
         setTopApp(top);
+        setUsageApps(apps.slice(0, 4));
       })();
       return () => {
         cancelled = true;
@@ -1087,8 +1169,12 @@ export default function DashboardScreen() {
         {/* Weekly trend */}
         <WeeklyTrend history={history} todayScore={productivityScore} />
 
-        {/* Next achievement */}
-        <NextAchievementBanner achievement={nextAchievement} />
+        {/* Screen time donut */}
+        <ScreenTimeCard
+          totalMinutes={stats.screenTimeMinutes}
+          dailyLimit={settings.dailyScreenTimeLimit}
+          usageApps={usageApps}
+        />
 
         {/* Log section */}
         <View style={styles.sectionRow}>
@@ -1106,23 +1192,12 @@ export default function DashboardScreen() {
               { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
             ]}
           >
-            {autoTracking ? "auto-tracked" : "tap + / − to update"}
+            tap + / − to update
           </Text>
         </View>
 
         {/* Stats grid */}
         <View style={styles.statsGrid}>
-          <LogCard
-            icon="cellphone"
-            label="Screen Time"
-            value={stats.screenTimeMinutes}
-            displayValue={screenTimeStr}
-            unit=""
-            step={15}
-            onIncrement={() => addScreenTime(15)}
-            onDecrement={() => addScreenTime(-15)}
-            warning={isOverLimit}
-          />
           <LogCard
             icon="cellphone-lock"
             label="Unlocks"
@@ -1154,16 +1229,6 @@ export default function DashboardScreen() {
             onIncrement={() => addReading(15)}
             onDecrement={() => addReading(-15)}
             accent
-          />
-          <LogCard
-            icon="youtube"
-            label="Shorts"
-            value={stats.shortsWatched}
-            displayValue={String(stats.shortsWatched)}
-            unit="watched"
-            step={10}
-            onIncrement={() => addShorts(10)}
-            onDecrement={() => addShorts(-10)}
           />
           <LogCard
             icon="fire"
@@ -1248,22 +1313,6 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 10,
   },
-  scoreRingOuter: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scoreRingInner: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    borderWidth: 3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   scoreNumber: { fontSize: 40, lineHeight: 44 },
   scoreLabel: { fontSize: 12, marginTop: -4 },
   scoreSideStats: { width: 60, gap: 16 },
@@ -1274,18 +1323,17 @@ const styles = StyleSheet.create({
   scoreReason: { fontSize: 12, marginTop: 4, textAlign: "center", paddingHorizontal: 30 },
 
   highlightsRow: {
-    flexDirection: "row",
-    gap: 10,
+    flexDirection: "column",
+    gap: 8,
     marginBottom: 12,
   },
   highlightCard: {
-    flex: 1,
     borderRadius: 14,
     borderWidth: 1,
     padding: 12,
     gap: 4,
   },
-  highlightCardEmpty: { flex: 1 },
+  highlightCardEmpty: {},
   highlightIconWrap: {
     width: 30,
     height: 30,
