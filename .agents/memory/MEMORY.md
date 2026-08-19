@@ -1,3 +1,4 @@
 - [Bully app architecture](bully-arch.md) — key decisions for the Expo/RN accountability app (Bully) sprint work
+- [Android unlock tracking](android-unlock-tracking.md) — Usage Access can count daily unlocks, but native changes require a fresh APK
 ---
 - [Expo gitignore android pattern](expo-gitignore-android.md) — bare `android/` in .gitignore ignores local module source; use `/android/` instead

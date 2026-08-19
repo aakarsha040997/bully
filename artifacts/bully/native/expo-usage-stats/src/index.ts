@@ -12,6 +12,7 @@ let ExpoUsageStats: {
   hasPermission: () => Promise<boolean>;
   requestPermission: () => Promise<boolean>;
   getUsageStats: () => Promise<AppUsage[]>;
+  getUnlockCount: () => Promise<number>;
   // Overlay permission
   hasOverlayPermission: () => Promise<boolean>;
   requestOverlayPermission: () => Promise<boolean>;
@@ -74,6 +75,16 @@ export async function getUsageStats(): Promise<AppUsage[]> {
     return await ExpoUsageStats.getUsageStats();
   } catch {
     return [];
+  }
+}
+
+/** Returns today's phone unlock count from Android lock-screen events. */
+export async function getUnlockCount(): Promise<number> {
+  if (!ExpoUsageStats) return 0;
+  try {
+    return await ExpoUsageStats.getUnlockCount();
+  } catch {
+    return 0;
   }
 }
 

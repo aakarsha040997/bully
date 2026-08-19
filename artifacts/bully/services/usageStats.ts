@@ -18,6 +18,7 @@ let native: {
   hasPermission: () => Promise<boolean>;
   requestPermission: () => Promise<boolean>;
   getUsageStats: () => Promise<AppUsage[]>;
+  getUnlockCount: () => Promise<number>;
   // Overlay
   hasOverlayPermission: () => Promise<boolean>;
   requestOverlayPermission: () => Promise<boolean>;
@@ -77,6 +78,15 @@ export async function getAppUsageStats(): Promise<AppUsage[]> {
     return [...stats].sort((a, b) => b.totalMinutes - a.totalMinutes);
   } catch {
     return [];
+  }
+}
+
+export async function getUnlockCount(): Promise<number> {
+  if (!native) return 0;
+  try {
+    return await native.getUnlockCount();
+  } catch {
+    return 0;
   }
 }
 

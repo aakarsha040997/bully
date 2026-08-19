@@ -1,6 +1,7 @@
 package expo.modules.usagestats
 
 import android.app.AppOpsManager
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -112,6 +113,35 @@ class UsageStatsModule : Module() {
 
       Log.d(TAG, "getUsageStats: returning ${result.size} entries")
       result
+    }
+
+    AsyncFunction("getUnlockCount") {
+      val context = appContext.reactContext ?: throw Exception("No React context")
+      val granted = checkUsagePermission(context)
+      if (!granted) {
+        return@AsyncFunction 0
+      }
+
+      val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+      val cal = Calendar.getInstance()
+      cal.set(Calendar.HOUR_OF_DAY, 0)
+      cal.set(Calendar.MINUTE, 0)
+      cal.set(Calendar.SECOND, 0)
+      cal.set(Calendar.MILLISECOND, 0)
+      val startOfDay = cal.timeInMillis
+      val events = usm.queryEvents(startOfDay, System.currentTimeMillis())
+      val event = UsageEvents.Event()
+      var unlocks = 0
+
+      while (events.hasNextEvent()) {
+        events.getNextEvent(event)
+        if (event.eventType == UsageEvents.Event.KEYGUARD_HIDDEN) {
+          unlocks++
+        }
+      }
+
+      Log.d(TAG, "getUnlockCount → $unlocks")
+      unlocks
     }
 
     // ── Overlay Permission ────────────────────────────────────────────────────

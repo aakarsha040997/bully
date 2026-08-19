@@ -25,10 +25,11 @@ import {
   getTotalScreenMinutes,
   getTopApp,
   getAppUsageStats,
+  getUnlockCount,
   updateOverlayRoast,
   type AppUsage,
 } from "@/services/usageStats";
-import { getNextAchievement, RARITY_COLORS } from "@/services/achievements";
+import { RARITY_COLORS } from "@/services/achievements";
 import type { Personality } from "@/services/roastEngine/types";
 import type { ScoreTrend } from "@/services/productivityScore";
 import type { DailyRecord } from "@/context/AppContext";
@@ -789,14 +790,12 @@ export default function DashboardScreen() {
     setTodaysRoast,
     updateStats,
     history,
-    achievements,
     newlyUnlocked,
     clearNewlyUnlocked,
   } = useApp();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [screenTimeWarningFired, setScreenTimeWarningFired] = useState(false);
-  const [autoTracking, setAutoTracking] = useState(false);
   const [topApp, setTopApp] = useState<AppUsage | null>(null);
   const [usageApps, setUsageApps] = useState<AppUsage[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -861,14 +860,14 @@ export default function DashboardScreen() {
       (async () => {
         const granted = await hasUsagePermission();
         if (!granted || cancelled) return;
-        setAutoTracking(true);
         const [totalMins, top, apps] = await Promise.all([
           getTotalScreenMinutes(),
           getTopApp(),
           getAppUsageStats(),
         ]);
+        const unlockCount = await getUnlockCount();
         if (cancelled) return;
-        updateStats({ screenTimeMinutes: totalMins });
+        updateStats({ screenTimeMinutes: totalMins, unlockCount });
         setTopApp(top);
         setUsageApps(apps.slice(0, 4));
       })();
@@ -898,11 +897,6 @@ export default function DashboardScreen() {
       }).catch(() => {});
     }
   }, [stats.screenTimeMinutes, settings.dailyScreenTimeLimit, settings.notificationsEnabled, screenTimeWarningFired]);
-
-  const nextAchievement = useMemo(
-    () => getNextAchievement(new Set(achievements.map((a) => a.id))),
-    [achievements]
-  );
 
   const screenTimeH = Math.floor(stats.screenTimeMinutes / 60);
   const screenTimeM = stats.screenTimeMinutes % 60;
@@ -941,10 +935,6 @@ export default function DashboardScreen() {
     });
   };
 
-  const addScreenTime = useCallback(
-    (delta: number) => updateStats({ screenTimeMinutes: Math.max(0, stats.screenTimeMinutes + delta) }),
-    [stats.screenTimeMinutes, updateStats]
-  );
   const addUnlocks = useCallback(
     (delta: number) => updateStats({ unlockCount: Math.max(0, stats.unlockCount + delta) }),
     [stats.unlockCount, updateStats]
@@ -956,10 +946,6 @@ export default function DashboardScreen() {
   const addReading = useCallback(
     (delta: number) => updateStats({ readingMinutes: Math.max(0, stats.readingMinutes + delta) }),
     [stats.readingMinutes, updateStats]
-  );
-  const addShorts = useCallback(
-    (delta: number) => updateStats({ shortsWatched: Math.max(0, stats.shortsWatched + delta) }),
-    [stats.shortsWatched, updateStats]
   );
   const toggleGym = useCallback(
     () => updateStats({ gymDone: !stats.gymDone }),
